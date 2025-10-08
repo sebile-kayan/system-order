@@ -1,0 +1,12 @@
+# Development override for docker-compose
+# This file is automatically loaded by docker-compose
+version: '3.8'
+
+services:
+  app:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm start

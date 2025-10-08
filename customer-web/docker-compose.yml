@@ -1,0 +1,8 @@
+#AMAÇ: NASIL ÇALIŞTIRILIR?
+services:
+  app:
+    build: .
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+#Docker Compose dosyası:  Container'ı çalıştırma ve güncelleme yapma için kullanılır.
