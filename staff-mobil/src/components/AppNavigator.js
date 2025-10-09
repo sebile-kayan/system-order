@@ -7,6 +7,10 @@ import AdminDashboard from '../screens/AdminDashboard';
 import ChefDashboard from '../screens/ChefDashboard';
 import WaiterDashboard from '../screens/WaiterDashboard';
 import CashierDashboard from '../screens/CashierDashboard';
+import TableManagementScreen from '../screens/TableManagementScreen';
+import EmployeeManagementScreen from '../screens/EmployeeManagementScreen';
+import MenuManagementScreen from '../screens/MenuManagementScreen';
+import ReportsScreen from '../screens/ReportsScreen';
 
 const Stack = createStackNavigator();
 
@@ -33,11 +37,26 @@ export default function AppNavigator() {
   switch (currentRole) {
     case 'admin':
       return (
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen 
             name="AdminDashboard" 
             component={AdminDashboard}
-            options={{ title: 'Yönetici Paneli' }}
+          />
+          <Stack.Screen 
+            name="TableManagement" 
+            component={TableManagementScreen}
+          />
+          <Stack.Screen 
+            name="EmployeeManagement" 
+            component={EmployeeManagementScreen}
+          />
+          <Stack.Screen 
+            name="MenuManagement" 
+            component={MenuManagementScreen}
+          />
+          <Stack.Screen 
+            name="Reports" 
+            component={ReportsScreen}
           />
         </Stack.Navigator>
       );
