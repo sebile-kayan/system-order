@@ -1,156 +1,227 @@
+/**
+ * LOGIN SCREEN - Giriş Ekranı
+ * 
+ * Bu ekran çalışanların kullanıcı adı ve şifre ile giriş yapmasını sağlar.
+ * Admin tarafından atanan kullanıcı adı ile giriş yapılır. Giriş başarılı olduktan sonra
+ * kullanıcının rollerine göre uygun dashboard'a yönlendirilir.
+ */
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, Dimensions } from 'react-native';
-import { TextInput, Button, Title, Paragraph, Surface } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-const { width, height } = Dimensions.get('window');
-
-export default function LoginScreen() {
+const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
-    if (!username.trim()) {
-      Alert.alert('Hata', 'Kullanıcı adı gerekli');
+    if (!username.trim() || !password.trim()) {
+      Alert.alert('Hata', 'Lütfen kullanıcı adı ve şifre giriniz.');
       return;
     }
 
-    const result = await login(username, password);
-    if (!result.success) {
-      Alert.alert('Giriş Hatası', result.error || 'Giriş başarısız');
+    setIsLoading(true);
+    try {
+      const success = await login({ username: username.trim(), password });
+      
+      if (success) {
+        // Giriş başarılı, navigation otomatik olarak AuthContext tarafından yönetilecek
+        // Burada manuel navigation yapmaya gerek yok
+      } else {
+        Alert.alert('Hata', 'Kullanıcı adı veya şifre hatalı.');
+      }
+    } catch (error) {
+      Alert.alert('Hata', 'Giriş yapılırken bir hata oluştu.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <LinearGradient
-      colors={['#667eea', '#764ba2']}
+    <KeyboardAvoidingView 
       style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
-        {/* Logo/Icon Alanı */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Title style={styles.logoText}>🍽️</Title>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Restoran Yönetimi</Text>
+          <Text style={styles.subtitle}>Çalışan Girişi</Text>
+        </View>
+
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Kullanıcı Adı</Text>
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Kullanıcı adınızı giriniz"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-          <Title style={styles.title}>Restoran Yönetim</Title>
-          <Paragraph style={styles.subtitle}>Profesyonel İşletme Sistemi</Paragraph>
-        </View>
 
-        {/* Login Form */}
-        <Surface style={styles.formContainer} elevation={8}>
-          <TextInput
-            label="Kullanıcı Adı"
-            value={username}
-            onChangeText={setUsername}
-            style={styles.input}
-            mode="outlined"
-            autoCapitalize="none"
-            left={<TextInput.Icon icon="account" />}
-            theme={{ colors: { primary: '#667eea' } }}
-          />
-          
-          <TextInput
-            label="Şifre"
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-            mode="outlined"
-            secureTextEntry
-            left={<TextInput.Icon icon="lock" />}
-            theme={{ colors: { primary: '#667eea' } }}
-          />
-          
-          <Button
-            mode="contained"
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Şifre</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Şifrenizi giriniz"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
             onPress={handleLogin}
-            loading={isLoading}
             disabled={isLoading}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
           >
-            {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-          </Button>
-        </Surface>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Paragraph style={styles.footerText}>
-            Güvenli ve modern işletme yönetimi
-          </Paragraph>
+            <Text style={styles.loginButtonText}>
+              {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </View>
-    </LinearGradient>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Giriş bilgilerinizi admin'den alabilirsiniz
+          </Text>
+          <Text style={styles.testUsersTitle}>Test Kullanıcıları (Şifre: 123):</Text>
+          <Text style={styles.testUsersText}>
+            • admin / 123 (Sadece Admin){'\n'}
+            • chef / 123 (Sadece Şef){'\n'}
+            • waiter / 123 (Sadece Garson){'\n'}
+            • cashier / 123 (Sadece Kasiyer){'\n'}
+            • chef_waiter / 123 (Şef + Garson){'\n'}
+            • waiter_cashier / 123 (Garson + Kasiyer){'\n'}
+            • all_roles / 123 (Tüm Roller - ROL DEĞİŞTİRME İÇİN)
+          </Text>
+          <Text style={styles.testNote}>
+            💡 Rol değiştirme butonlarının hepsini görmek için "all_roles" kullanıcısı ile giriş yapın!
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  content: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
-  logoContainer: {
+  header: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  logoText: {
-    fontSize: 32,
-  },
   title: {
-    textAlign: 'center',
-    marginBottom: 8,
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#1e3a8a',
+    marginBottom: 8,
   },
   subtitle: {
-    textAlign: 'center',
-    color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
+    color: '#6b7280',
   },
-  formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
+  form: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     padding: 24,
-    marginHorizontal: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 4,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
   },
   input: {
-    marginBottom: 20,
-    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#f9fafb',
   },
-  button: {
-    marginTop: 12,
-    borderRadius: 12,
-    backgroundColor: '#667eea',
+  loginButton: {
+    backgroundColor: '#1e3a8a',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  buttonContent: {
-    paddingVertical: 8,
+  loginButtonDisabled: {
+    backgroundColor: '#9ca3af',
   },
-  buttonLabel: {
+  loginButtonText: {
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
   footer: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 30,
   },
   footerText: {
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+  },
+  testUsersTitle: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 20,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  testUsersText: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'left',
+    lineHeight: 16,
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  testNote: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: '#fef2f2',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
 });
+
+export default LoginScreen;

@@ -1,598 +1,611 @@
+/**
+ * REPORTS SCREEN - Raporlar Ekranı (Sadece Admin)
+ * 
+ * Bu ekran sadece admin rolündeki kullanıcılar için raporlama sağlar.
+ * Günlük, haftalık, yıllık satış raporları, gelir analizleri ve işletme performans metrikleri içerir.
+ */
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
-import { 
-  Appbar, 
-  Card, 
-  Title, 
-  Paragraph, 
-  Button, 
-  FAB, 
-  DataTable,
-  Chip,
-  SegmentedButtons,
-  Surface,
-  Text
-} from 'react-native-paper';
-import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  RefreshControl,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
 
-const { width } = Dimensions.get('window');
-
-// Mock data
-const mockWeeklyData = [
-  { date: '3 Eki', revenue: 3200, orders: 18 },
-  { date: '6 Eki', revenue: 4500, orders: 25 },
-  { date: '9 Eki', revenue: 3800, orders: 21 },
-  { date: '12 Eki', revenue: 5200, orders: 28 },
-  { date: '15 Eki', revenue: 4100, orders: 22 },
-  { date: '18 Eki', revenue: 4800, orders: 26 },
-  { date: '21 Eki', revenue: 3900, orders: 20 },
-];
-
-const mockRecentPayments = [
-  { id: 1, amount: 285, method: 'Nakit', date: '09.10', table: 'Masa 3' },
-  { id: 2, amount: 195, method: 'Kredi Kartı', date: '09.10', table: 'Masa 1' },
-  { id: 3, amount: 420, method: 'Nakit', date: '09.10', table: 'Masa 5' },
-  { id: 4, amount: 350, method: 'Kredi Kartı', date: '09.10', table: 'Masa 2' },
-  { id: 5, amount: 180, method: 'Nakit', date: '09.10', table: 'Masa 4' },
-];
-
-const mockTopSellingItems = [
-  { name: 'Adana Kebap', count: 23, revenue: 1955 },
-  { name: 'Izgara Köfte', count: 18, revenue: 1350 },
-  { name: 'Lahmacun', count: 15, revenue: 525 },
-  { name: 'Mercimek Çorbası', count: 12, revenue: 300 },
-  { name: 'Çoban Salatası', count: 10, revenue: 300 },
-];
-
-const mockEmployeeStats = [
-  { name: 'Ahmet Yılmaz', orders: 45, revenue: 3200 },
-  { name: 'Ayşe Kaya', orders: 38, revenue: 2800 },
-  { name: 'Mehmet Demir', orders: 42, revenue: 3100 },
-];
-
-export default function ReportsScreen({ navigation }) {
-  const { user, logout } = useAuth();
+const ReportsScreen = () => {
+  const { user, hasRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('week');
-  const [reports, setReports] = useState({
-    weeklyData: mockWeeklyData,
-    recentPayments: mockRecentPayments,
-    topSellingItems: mockTopSellingItems,
-    employeeStats: mockEmployeeStats
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
+  const [selectedReport, setSelectedReport] = useState('sales');
+
+  // Admin kontrolü
+  if (!hasRole('admin')) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.accessDenied}>
+          <Text style={styles.accessDeniedIcon}>📊</Text>
+          <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
+          <Text style={styles.accessDeniedText}>
+            Bu sayfaya erişim için admin yetkisi gereklidir.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Mock veriler
+  const [reportData, setReportData] = useState({
+    today: {
+      sales: {
+        totalRevenue: 2850.50,
+        totalOrders: 45,
+        averageOrderValue: 63.34,
+        completedOrders: 42,
+        pendingOrders: 3,
+      },
+      popular: [
+        { name: 'Adana Kebab', sales: 15, revenue: 825.00 },
+        { name: 'Margherita Pizza', sales: 12, revenue: 540.00 },
+        { name: 'Cheeseburger', sales: 10, revenue: 350.00 },
+        { name: 'Ayran', sales: 25, revenue: 375.00 },
+        { name: 'Cola', sales: 18, revenue: 270.00 },
+      ],
+      hourly: [
+        { hour: '12:00', orders: 8, revenue: 485.50 },
+        { hour: '13:00', orders: 15, revenue: 925.00 },
+        { hour: '14:00', orders: 12, revenue: 720.00 },
+        { hour: '15:00', orders: 10, revenue: 720.00 },
+      ],
+    },
+    weekly: {
+      sales: {
+        totalRevenue: 18950.75,
+        totalOrders: 285,
+        averageOrderValue: 66.49,
+        completedOrders: 275,
+        pendingOrders: 10,
+      },
+    },
+    monthly: {
+      sales: {
+        totalRevenue: 78500.25,
+        totalOrders: 1150,
+        averageOrderValue: 68.26,
+        completedOrders: 1120,
+        pendingOrders: 30,
+      },
+    },
   });
 
-  useEffect(() => {
-    loadReports();
-  }, [selectedPeriod]);
-
-  const loadReports = async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    try {
-      // Gerçek API çağrısı
-      // const response = await api.getReports(selectedPeriod);
-      // setReports(response.data);
-      
-      // Mock data kullan
-      setTimeout(() => {
-        setRefreshing(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Rapor verileri yüklenirken hata:', error);
+    // TODO: API'den güncel rapor verilerini çek
+    setTimeout(() => {
       setRefreshing(false);
+    }, 1000);
+  };
+
+  const periods = [
+    { key: 'today', label: 'Bugün' },
+    { key: 'week', label: 'Bu Hafta' },
+    { key: 'month', label: 'Bu Ay' },
+    { key: 'year', label: 'Bu Yıl' },
+  ];
+
+  const reports = [
+    { key: 'sales', label: 'Satış Raporu' },
+    { key: 'popular', label: 'Popüler Ürünler' },
+    { key: 'hourly', label: 'Saatlik Analiz' },
+    { key: 'customers', label: 'Müşteri Analizi' },
+  ];
+
+  const currentData = reportData[selectedPeriod] || reportData.today;
+
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case 'today': return 'Bugün';
+      case 'week': return 'Bu Hafta';
+      case 'month': return 'Bu Ay';
+      case 'year': return 'Bu Yıl';
+      default: return 'Bugün';
     }
   };
 
-  const onRefresh = () => {
-    loadReports();
-  };
+  const renderSalesReport = () => (
+    <View style={styles.reportContent}>
+      <Text style={styles.reportTitle}>Satış Özeti - {getPeriodLabel()}</Text>
+      
+      <View style={styles.salesGrid}>
+        <View style={styles.salesCard}>
+          <Text style={styles.salesNumber}>₺{currentData.sales.totalRevenue.toFixed(2)}</Text>
+          <Text style={styles.salesLabel}>Toplam Ciro</Text>
+        </View>
+        <View style={styles.salesCard}>
+          <Text style={styles.salesNumber}>{currentData.sales.totalOrders}</Text>
+          <Text style={styles.salesLabel}>Toplam Sipariş</Text>
+        </View>
+        <View style={styles.salesCard}>
+          <Text style={styles.salesNumber}>₺{currentData.sales.averageOrderValue.toFixed(2)}</Text>
+          <Text style={styles.salesLabel}>Ortalama Tutar</Text>
+        </View>
+        <View style={styles.salesCard}>
+          <Text style={styles.salesNumber}>{currentData.sales.completedOrders}</Text>
+          <Text style={styles.salesLabel}>Tamamlanan</Text>
+        </View>
+      </View>
 
-  const chartConfig = {
-    backgroundColor: '#ffffff',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(30, 58, 138, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: '#1e3a8a',
-    },
-  };
+      <View style={styles.progressSection}>
+        <Text style={styles.sectionTitle}>Tamamlanma Oranı</Text>
+        <View style={styles.progressBar}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { width: `${(currentData.sales.completedOrders / currentData.sales.totalOrders) * 100}%` }
+            ]} 
+          />
+        </View>
+        <Text style={styles.progressText}>
+          %{((currentData.sales.completedOrders / currentData.sales.totalOrders) * 100).toFixed(1)}
+        </Text>
+      </View>
+    </View>
+  );
 
-  const barChartData = {
-    labels: reports.weeklyData.map(item => item.date),
-    datasets: [
-      {
-        data: reports.weeklyData.map(item => item.revenue),
-        color: (opacity = 1) => `rgba(30, 58, 138, ${opacity})`,
-        strokeWidth: 2,
-      },
-    ],
-  };
+  const renderPopularReport = () => (
+    <View style={styles.reportContent}>
+      <Text style={styles.reportTitle}>En Popüler Ürünler - {getPeriodLabel()}</Text>
+      
+      {currentData.popular?.map((item, index) => (
+        <View key={index} style={styles.popularItem}>
+          <View style={styles.popularInfo}>
+            <Text style={styles.popularRank}>#{index + 1}</Text>
+            <Text style={styles.popularName}>{item.name}</Text>
+          </View>
+          <View style={styles.popularStats}>
+            <Text style={styles.popularSales}>{item.sales} adet</Text>
+            <Text style={styles.popularRevenue}>₺{item.revenue.toFixed(2)}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
-  const pieChartData = [
-    {
-      name: 'Nakit',
-      population: reports.recentPayments.filter(p => p.method === 'Nakit').length,
-      color: '#10b981',
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Kredi Kartı',
-      population: reports.recentPayments.filter(p => p.method === 'Kredi Kartı').length,
-      color: '#3b82f6',
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12,
-    },
-  ];
+  const renderHourlyReport = () => (
+    <View style={styles.reportContent}>
+      <Text style={styles.reportTitle}>Saatlik Analiz - {getPeriodLabel()}</Text>
+      
+      {currentData.hourly?.map((hour, index) => (
+        <View key={index} style={styles.hourlyItem}>
+          <Text style={styles.hourlyTime}>{hour.hour}</Text>
+          <View style={styles.hourlyStats}>
+            <Text style={styles.hourlyOrders}>{hour.orders} sipariş</Text>
+            <Text style={styles.hourlyRevenue}>₺{hour.revenue.toFixed(2)}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
-  const getTotalRevenue = () => {
-    return reports.weeklyData.reduce((sum, item) => sum + item.revenue, 0);
-  };
+  const renderCustomersReport = () => (
+    <View style={styles.reportContent}>
+      <Text style={styles.reportTitle}>Müşteri Analizi - {getPeriodLabel()}</Text>
+      
+      <View style={styles.customerStats}>
+        <View style={styles.customerCard}>
+          <Text style={styles.customerNumber}>285</Text>
+          <Text style={styles.customerLabel}>Toplam Müşteri</Text>
+        </View>
+        <View style={styles.customerCard}>
+          <Text style={styles.customerNumber}>2.3</Text>
+          <Text style={styles.customerLabel}>Ort. Müşteri/Masa</Text>
+        </View>
+        <View style={styles.customerCard}>
+          <Text style={styles.customerNumber}>45 dk</Text>
+          <Text style={styles.customerLabel}>Ort. Kalma Süresi</Text>
+        </View>
+        <View style={styles.customerCard}>
+          <Text style={styles.customerNumber}>4.2</Text>
+          <Text style={styles.customerLabel}>Ort. Puan</Text>
+        </View>
+      </View>
+    </View>
+  );
 
-  const getTotalOrders = () => {
-    return reports.weeklyData.reduce((sum, item) => sum + item.orders, 0);
-  };
-
-  const getAverageOrderValue = () => {
-    const totalRevenue = getTotalRevenue();
-    const totalOrders = getTotalOrders();
-    return totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const renderReportContent = () => {
+    switch (selectedReport) {
+      case 'sales': return renderSalesReport();
+      case 'popular': return renderPopularReport();
+      case 'hourly': return renderHourlyReport();
+      case 'customers': return renderCustomersReport();
+      default: return renderSalesReport();
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
-          <Appbar.BackAction onPress={() => navigation.goBack()} color="white" />
-          <Appbar.Content title="Raporlar" titleStyle={styles.headerTitle} />
-        </Appbar.Header>
-        <Paragraph style={styles.headerSubtitle}>Detaylı satış ve performans raporları</Paragraph>
+        <Text style={styles.headerTitle}>Raporlar</Text>
+        <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
       </View>
 
-      {/* Main Content */}
-      <View style={styles.content}>
-        {/* Period Selector */}
-        <View style={styles.periodContainer}>
-          <SegmentedButtons
-            value={selectedPeriod}
-            onValueChange={setSelectedPeriod}
-            buttons={[
-              { value: 'day', label: 'Günlük' },
-              { value: 'week', label: 'Haftalık' },
-              { value: 'month', label: 'Aylık' },
-              { value: 'year', label: 'Yıllık' },
-            ]}
-            style={styles.segmentedButtons}
-          />
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Zaman Periyodu Seçimi */}
+        <View style={styles.periodSection}>
+          <Text style={styles.sectionTitle}>Zaman Periyodu</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodsContainer}>
+            {periods.map((period) => (
+              <TouchableOpacity
+                key={period.key}
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === period.key && styles.periodButtonActive
+                ]}
+                onPress={() => setSelectedPeriod(period.key)}
+              >
+                <Text style={[
+                  styles.periodButtonText,
+                  selectedPeriod === period.key && styles.periodButtonTextActive
+                ]}>
+                  {period.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={true}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {/* Summary Cards */}
-          <View style={styles.summaryCards}>
-            <Card style={styles.summaryCard}>
-              <Card.Content style={styles.summaryCardContent}>
-                <Title style={styles.summaryTitle}>Toplam Ciro</Title>
-                <Title style={styles.summaryValue}>₺{getTotalRevenue().toLocaleString()}</Title>
-                <Paragraph style={styles.summarySubtext}>
-                  {selectedPeriod === 'week' ? 'Bu hafta' : 
-                   selectedPeriod === 'month' ? 'Bu ay' : 
-                   selectedPeriod === 'year' ? 'Bu yıl' : 'Bugün'}
-                </Paragraph>
-              </Card.Content>
-            </Card>
+        {/* Rapor Türü Seçimi */}
+        <View style={styles.reportSection}>
+          <Text style={styles.sectionTitle}>Rapor Türü</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reportsContainer}>
+            {reports.map((report) => (
+              <TouchableOpacity
+                key={report.key}
+                style={[
+                  styles.reportButton,
+                  selectedReport === report.key && styles.reportButtonActive
+                ]}
+                onPress={() => setSelectedReport(report.key)}
+              >
+                <Text style={[
+                  styles.reportButtonText,
+                  selectedReport === report.key && styles.reportButtonTextActive
+                ]}>
+                  {report.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-            <Card style={styles.summaryCard}>
-              <Card.Content style={styles.summaryCardContent}>
-                <Title style={styles.summaryTitle}>Toplam Sipariş</Title>
-                <Title style={styles.summaryValue}>{getTotalOrders()}</Title>
-                <Paragraph style={styles.summarySubtext}>
-                  Ortalama: ₺{getAverageOrderValue()}
-                </Paragraph>
-              </Card.Content>
-            </Card>
+        {/* Rapor İçeriği */}
+        <View style={styles.contentSection}>
+          {renderReportContent()}
+        </View>
+
+        {/* Hızlı İşlemler */}
+        <View style={styles.actionsSection}>
+          <Text style={styles.sectionTitle}>Rapor İşlemleri</Text>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity style={styles.actionCard}>
+              <Text style={styles.actionIcon}>📤</Text>
+              <Text style={styles.actionTitle}>PDF İndir</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard}>
+              <Text style={styles.actionIcon}>📧</Text>
+              <Text style={styles.actionTitle}>E-posta Gönder</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard}>
+              <Text style={styles.actionIcon}>📊</Text>
+              <Text style={styles.actionTitle}>Detaylı Analiz</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionCard}>
+              <Text style={styles.actionIcon}>⚙️</Text>
+              <Text style={styles.actionTitle}>Rapor Ayarları</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Weekly Revenue Chart */}
-          <Card style={styles.chartCard}>
-            <Card.Content>
-              <Title style={styles.chartTitle}>Haftalık Ciro Trendi</Title>
-              <View style={styles.chartContainer}>
-                <BarChart
-                  data={barChartData}
-                  width={width - 80}
-                  height={220}
-                  chartConfig={chartConfig}
-                  style={styles.chart}
-                  showValuesOnTopOfBars={true}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Payment Methods Chart */}
-          <Card style={styles.chartCard}>
-            <Card.Content>
-              <Title style={styles.chartTitle}>Ödeme Yöntemleri</Title>
-              <View style={styles.chartContainer}>
-                <PieChart
-                  data={pieChartData}
-                  width={width - 80}
-                  height={220}
-                  chartConfig={chartConfig}
-                  accessor="population"
-                  backgroundColor="transparent"
-                  paddingLeft="15"
-                  style={styles.chart}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Top Selling Items */}
-          <Card style={styles.tableCard}>
-            <Card.Content>
-              <Title style={styles.tableTitle}>En Çok Satan Ürünler</Title>
-              {reports.topSellingItems.map((item, index) => (
-                <Card key={index} style={styles.topItemCard}>
-                  <Card.Content style={styles.topItemContent}>
-                    <View style={styles.topItemHeader}>
-                      <Surface style={styles.rankBadge}>
-                        <Text style={styles.rankText}>{index + 1}</Text>
-                      </Surface>
-                      <View style={styles.topItemInfo}>
-                        <Title style={styles.topItemName}>{item.name}</Title>
-                        <Paragraph style={styles.topItemSubtext}>
-                          {item.count} adet satıldı
-                        </Paragraph>
-                      </View>
-                    </View>
-                    <View style={styles.topItemStats}>
-                      <Title style={styles.topItemRevenue}>₺{item.revenue}</Title>
-                      <Paragraph style={styles.topItemRevenueLabel}>Toplam Ciro</Paragraph>
-                    </View>
-                  </Card.Content>
-                </Card>
-              ))}
-            </Card.Content>
-          </Card>
-
-          {/* Recent Payments */}
-          <Card style={styles.tableCard}>
-            <Card.Content>
-              <Title style={styles.tableTitle}>Son Ödemeler</Title>
-              {reports.recentPayments.map((payment) => (
-                <Card key={payment.id} style={styles.paymentCard}>
-                  <Card.Content style={styles.paymentContent}>
-                    <View style={styles.paymentHeader}>
-                      <View style={styles.paymentInfo}>
-                        <Title style={styles.paymentId}>Sipariş #{payment.id}</Title>
-                        <Paragraph style={styles.paymentTable}>Masa: {payment.table}</Paragraph>
-                      </View>
-                      <View style={styles.paymentAmount}>
-                        <Title style={styles.paymentAmountText}>₺{payment.amount}</Title>
-                      </View>
-                    </View>
-                    <View style={styles.paymentFooter}>
-                      <Chip 
-                        mode="outlined" 
-                        compact
-                        style={styles.paymentChip}
-                      >
-                        {payment.method}
-                      </Chip>
-                      <Paragraph style={styles.paymentDate}>{payment.date}</Paragraph>
-                    </View>
-                  </Card.Content>
-                </Card>
-              ))}
-            </Card.Content>
-          </Card>
-
-          {/* Employee Performance */}
-          <Card style={styles.tableCard}>
-            <Card.Content>
-              <Title style={styles.tableTitle}>Çalışan Performansı</Title>
-              {reports.employeeStats.map((employee, index) => (
-                <Card key={index} style={styles.employeeCard}>
-                  <Card.Content style={styles.employeeContent}>
-                    <View style={styles.employeeHeader}>
-                      <Avatar.Text 
-                        size={40} 
-                        label={employee.name.charAt(0)} 
-                        style={styles.employeeAvatar}
-                      />
-                      <View style={styles.employeeInfo}>
-                        <Title style={styles.employeeName}>{employee.name}</Title>
-                        <Paragraph style={styles.employeeSubtext}>
-                          {employee.orders} sipariş işledi
-                        </Paragraph>
-                      </View>
-                    </View>
-                    <View style={styles.employeeStats}>
-                      <Title style={styles.employeeRevenue}>₺{employee.revenue}</Title>
-                      <Paragraph style={styles.employeeRevenueLabel}>Toplam Ciro</Paragraph>
-                    </View>
-                  </Card.Content>
-                </Card>
-              ))}
-            </Card.Content>
-          </Card>
-        </ScrollView>
-      </View>
-
-      {/* Export FAB */}
-      <FAB
-        icon="download"
-        label="Raporu İndir"
-        style={styles.exportFab}
-        onPress={() => {
-          // PDF export functionality
-          console.log('Rapor indiriliyor...');
-        }}
-      />
-    </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#1e3a8a',
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 4,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    marginLeft: 16,
-    marginTop: -10,
-  },
-  content: {
+  accessDenied: {
     flex: 1,
-    paddingHorizontal: 16,
-    marginTop: -20,
-    backgroundColor: '#f5f5f5',
-  },
-  periodContainer: {
-    paddingVertical: 16,
-  },
-  segmentedButtons: {
-    marginBottom: 8,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  summaryCards: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  summaryCard: {
-    width: '48%',
-    elevation: 2,
-  },
-  summaryCardContent: {
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 40,
   },
-  summaryTitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+  accessDeniedIcon: {
+    fontSize: 64,
+    marginBottom: 16,
   },
-  summaryValue: {
+  accessDeniedTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
+    color: '#dc2626',
+    marginBottom: 8,
   },
-  summarySubtext: {
-    fontSize: 12,
-    color: '#9ca3af',
+  accessDeniedText: {
+    fontSize: 16,
+    color: '#6b7280',
     textAlign: 'center',
   },
-  chartCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 10,
+  header: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  chartTitle: {
-    fontSize: 18,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+    color: '#1f2937',
   },
-  chartContainer: {
-    alignItems: 'center',
-  },
-  chart: {
-    borderRadius: 16,
-  },
-  tableCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 10,
-  },
-  tableTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  topItemCard: {
-    elevation: 1,
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: '#f8fafc',
-  },
-  topItemContent: {
-    padding: 12,
-  },
-  topItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rankBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#1e3a8a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  rankText: {
-    color: 'white',
+  headerSubtitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    color: '#6b7280',
+    marginTop: 4,
   },
-  topItemInfo: {
+  scrollView: {
     flex: 1,
   },
-  topItemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 2,
+  periodSection: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
   },
-  topItemSubtext: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  topItemStats: {
-    alignItems: 'flex-end',
-  },
-  topItemRevenue: {
+  sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
   },
-  topItemRevenueLabel: {
-    fontSize: 10,
-    color: '#6b7280',
-  },
-  paymentCard: {
-    elevation: 1,
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: '#f8fafc',
-  },
-  paymentContent: {
-    padding: 12,
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  periodsContainer: {
     marginBottom: 8,
   },
-  paymentInfo: {
-    flex: 1,
-  },
-  paymentId: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 2,
-  },
-  paymentTable: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  paymentAmount: {
-    alignItems: 'flex-end',
-  },
-  paymentAmountText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  paymentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paymentChip: {
+  periodButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
     backgroundColor: '#f3f4f6',
-  },
-  paymentDate: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  employeeCard: {
-    elevation: 1,
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: '#f8fafc',
-  },
-  employeeContent: {
-    padding: 12,
-  },
-  employeeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  employeeAvatar: {
-    backgroundColor: '#e5e7eb',
     marginRight: 12,
   },
-  employeeInfo: {
-    flex: 1,
+  periodButtonActive: {
+    backgroundColor: '#dc2626',
   },
-  employeeName: {
-    fontSize: 16,
+  periodButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  periodButtonTextActive: {
+    color: '#ffffff',
+  },
+  reportSection: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+  },
+  reportsContainer: {
+    marginBottom: 8,
+  },
+  reportButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    marginRight: 12,
+  },
+  reportButtonActive: {
+    backgroundColor: '#1e3a8a',
+  },
+  reportButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  reportButtonTextActive: {
+    color: '#ffffff',
+  },
+  contentSection: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+  },
+  reportContent: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 20,
+  },
+  reportTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 2,
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  employeeSubtext: {
+  salesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  salesCard: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
+  salesNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#dc2626',
+    marginBottom: 4,
+  },
+  salesLabel: {
     fontSize: 12,
     color: '#6b7280',
+    fontWeight: '500',
   },
-  employeeStats: {
+  progressSection: {
+    marginTop: 20,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    marginVertical: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10b981',
+    textAlign: 'center',
+  },
+  popularItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  popularInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  popularRank: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#dc2626',
+    marginRight: 12,
+    width: 30,
+  },
+  popularName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  popularStats: {
     alignItems: 'flex-end',
   },
-  employeeRevenue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  employeeRevenueLabel: {
-    fontSize: 10,
+  popularSales: {
+    fontSize: 12,
     color: '#6b7280',
+    marginBottom: 2,
   },
-  exportFab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#059669',
+  popularRevenue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#dc2626',
+  },
+  hourlyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  hourlyTime: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  hourlyStats: {
+    alignItems: 'flex-end',
+  },
+  hourlyOrders: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  hourlyRevenue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#dc2626',
+  },
+  customerStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  customerCard: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
+  customerNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e3a8a',
+    marginBottom: 4,
+  },
+  customerLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  actionsSection: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+    marginBottom: 40,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  actionCard: {
+    width: '48%',
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  actionIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  actionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1f2937',
+    textAlign: 'center',
   },
 });
+
+export default ReportsScreen;

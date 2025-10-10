@@ -78,6 +78,11 @@ export const CartProvider = ({ children }) => {
     const stored = localStorage.getItem('orderTotal');
     return stored ? parseFloat(stored) : 0;
   });
+  const [isPaid, setIsPaid] = React.useState(() => {
+    // localStorage'dan ödeme durumunu oku
+    const stored = localStorage.getItem('isPaid');
+    return stored === 'true';
+  });
 
   const addToCart = (item) => {
     dispatch({ type: 'ADD_TO_CART', payload: item });
@@ -97,18 +102,33 @@ export const CartProvider = ({ children }) => {
 
   const placeOrder = () => {
     const currentTotal = calculateTotal();
+    const newOrderTotal = hasOrdered ? orderTotal + currentTotal : currentTotal;
     setHasOrdered(true);
-    setOrderTotal(currentTotal);
+    setOrderTotal(newOrderTotal);
+    setIsPaid(false);
     localStorage.setItem('hasOrdered', 'true');
-    localStorage.setItem('orderTotal', currentTotal.toString());
+    localStorage.setItem('orderTotal', newOrderTotal.toString());
+    localStorage.setItem('isPaid', 'false');
     dispatch({ type: 'CLEAR_CART' });
+  };
+
+  const markAsPaid = () => {
+    setIsPaid(true);
+    setHasOrdered(false);
+    setOrderTotal(0);
+    dispatch({ type: 'CLEAR_CART' });
+    localStorage.setItem('isPaid', 'true');
+    localStorage.removeItem('hasOrdered');
+    localStorage.removeItem('orderTotal');
   };
 
   const resetOrderStatus = () => {
     setHasOrdered(false);
     setOrderTotal(0);
+    setIsPaid(false);
     localStorage.removeItem('hasOrdered');
     localStorage.removeItem('orderTotal');
+    localStorage.removeItem('isPaid');
   };
 
   const calculateTotal = () => {
@@ -129,7 +149,9 @@ export const CartProvider = ({ children }) => {
     getCartItemCount,
     hasOrdered,
     orderTotal,
+    isPaid,
     placeOrder,
+    markAsPaid,
     resetOrderStatus
   };
 

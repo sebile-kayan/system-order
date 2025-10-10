@@ -35,13 +35,40 @@ import { useTable } from '../context/TableContext';
 import { useNavigate } from 'react-router-dom';
 
 const PaymentPage = () => {
-  const { calculateTotal, cart, hasOrdered, orderTotal } = useCart();
+  const { calculateTotal, cart, hasOrdered, orderTotal, markAsPaid } = useCart();
   const { tableInfo } = useTable();
   const navigate = useNavigate();
-  const total = hasOrdered ? orderTotal : calculateTotal();
+  
+  // Ödeme sayfasında sadece sipariş verilen tutarı göster
+  const currentCartTotal = calculateTotal();
+  let total = 0;
+  
+  if (hasOrdered) {
+    total = orderTotal; // Sadece sipariş verilen tutar (sepetteki ürünler dahil değil)
+    console.log('PAYMENT PAGE DEBUG:', { 
+      hasOrdered, 
+      orderTotal, 
+      currentCartTotal, 
+      total,
+      cartLength: cart.length 
+    });
+  } else {
+    total = currentCartTotal; // Sadece sepet tutarı
+    console.log('PAYMENT PAGE DEBUG (No Order):', { 
+      currentCartTotal, 
+      total,
+      cartLength: cart.length 
+    });
+  }
+  
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [paidAmount, setPaidAmount] = useState(0);
 
   const requestPayment = () => {
+    // Ödeme tutarını kaydet (markAsPaid çağrılmadan önce)
+    setPaidAmount(total);
+    // Ödeme işlemini tamamla - Payment Button'ı sıfırla
+    markAsPaid();
     setShowSuccessMessage(true);
     // 3 saniye sonra menüye yönlendir
     setTimeout(() => {
@@ -55,12 +82,12 @@ const PaymentPage = () => {
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="mb-6">
             <div className="text-6xl mb-4">✅</div>
-            <h1 className="text-2xl font-bold text-green-600 mb-4">Ödeme İsteği Gönderildi!</h1>
+            <h1 className="text-2xl font-bold text-green-600 mb-4">Ödeme Tamamlandı!</h1>
             <p className="text-gray-600 mb-6">
-              Masa {tableInfo.id} için <span className="font-bold text-orange-600">₺{total.toFixed(2)}</span> tutarında ödeme isteği gönderildi.
+              Masa {tableInfo.id} için <span className="font-bold text-orange-600">₺{paidAmount.toFixed(2)}</span> tutarında ödeme tamamlandı.
             </p>
             <p className="text-gray-500 text-sm">
-              Garson masanıza geliyor. Menüye yönlendiriliyorsunuz...
+              Yeni siparişler için menüye yönlendiriliyorsunuz...
             </p>
           </div>
           

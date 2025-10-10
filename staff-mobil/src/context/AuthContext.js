@@ -1,220 +1,242 @@
+/**
+ * AUTH CONTEXT - Kimlik Doğrulama Yönetimi
+ * 
+ * Bu context kullanıcı giriş/çıkış işlemlerini, oturum yönetimini ve rol tabanlı erişim kontrolünü yönetir.
+ * AsyncStorage ile oturum bilgilerini kalıcı hale getirir ve tüm uygulama boyunca kullanıcı durumunu takip eder.
+ */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '../services/api';
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [business, setBusiness] = useState(null);
+  const [token, setToken] = useState(null);
   const [currentRole, setCurrentRole] = useState(null);
-  const [availableRoles, setAvailableRoles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Uygulama başlangıcında token kontrolü
+
+  const isAuthenticated = !!user && !!token;
+  
+
+  // Uygulama başlatıldığında oturum bilgilerini yükle
   useEffect(() => {
-    checkAuthStatus();
+    loadStoredAuth();
   }, []);
 
-  const checkAuthStatus = async () => {
+  const clearAllStorage = async () => {
     try {
-      // Geçici olarak otomatik girişi devre dışı bırak
-      // const authData = await AsyncStorage.getItem('auth');
-      
-      // if (authData) {
-      //   const { user: savedUser, roles } = JSON.parse(authData);
-      //   
-      //   // Mock sistem - direkt kullanıcıyı yükle
-      //   setUser(savedUser);
-      //   setAvailableRoles(roles);
-      //   setCurrentRole(roles[0]);
-      // }
-      
-      // Login ekranını göster
+      await AsyncStorage.clear();
       setUser(null);
-      setAvailableRoles([]);
+      setBusiness(null);
+      setToken(null);
       setCurrentRole(null);
-      
-      // Gerçek API kodu (backend hazır olduğunda açılacak)
-      /*
-      const token = await AsyncStorage.getItem('authToken');
-      if (token) {
-        // Token geçerliliğini kontrol et
-        try {
-          const profile = await api.getProfile();
-          setUser(profile);
-          setAvailableRoles(roles);
-          setCurrentRole(roles[0]);
-        } catch (error) {
-          // Token geçersiz, temizle
-          await logout();
-        }
-      }
-      */
     } catch (error) {
-      console.error('Auth check error:', error);
-    } finally {
-      setIsLoading(false);
-      setIsInitialized(true);
+      console.error('❌ AsyncStorage temizleme hatası:', error);
     }
   };
 
-  const login = async (username, password) => {
-    setIsLoading(true);
+  const loadStoredAuth = async () => {
     try {
-      // Geçici mock login - backend hazır olana kadar
-      const mockUser = {
-        id: 1,
-        username: username,
-        full_name: username === 'admin' ? 'Admin Kullanıcı' : 
-                   username === 'chef' ? 'Şef Kullanıcı' :
-                   username === 'waiter' ? 'Garson Kullanıcı' :
-                   username === 'cashier' ? 'Kasiyer Kullanıcı' : 'Test Kullanıcı',
-        business_id: 1
-      };
-      
-      // Kullanıcı adına göre roller belirle (gerçek sistemde veritabanından gelecek)
-      let mockRoles = ['waiter']; // varsayılan
-      if (username === 'admin') {
-        mockRoles = ['admin', 'chef', 'waiter', 'cashier']; // Admin tüm rollere sahip
-      } else if (username === 'chef') {
-        mockRoles = ['chef']; // Sadece şef
-      } else if (username === 'waiter') {
-        mockRoles = ['waiter']; // Sadece garson
-      } else if (username === 'cashier') {
-        mockRoles = ['cashier']; // Sadece kasiyer
-      } else if (username === 'ahmet') {
-        mockRoles = ['waiter', 'cashier']; // Ahmet hem garson hem kasiyer
-      } else if (username === 'mehmet') {
-        mockRoles = ['chef', 'waiter']; // Mehmet hem şef hem garson
-      } else if (username === 'ayse') {
-        mockRoles = ['waiter', 'cashier', 'chef']; // Ayşe üç role sahip
-      } else if (username === 'fatma') {
-        mockRoles = ['cashier', 'waiter']; // Fatma hem kasiyer hem garson
-      } else {
-        mockRoles = ['waiter', 'chef']; // Diğer kullanıcılar için varsayılan
+      const storedUser = await AsyncStorage.getItem('user');
+      const storedBusiness = await AsyncStorage.getItem('business');
+      const storedToken = await AsyncStorage.getItem('token');
+      const storedRole = await AsyncStorage.getItem('currentRole');
+
+      if (storedUser && storedBusiness && storedToken) {
+        setUser(JSON.parse(storedUser));
+        setBusiness(JSON.parse(storedBusiness));
+        setToken(storedToken);
+        setCurrentRole(storedRole);
       }
-      
-      setUser(mockUser);
-      setAvailableRoles(mockRoles);
-      setCurrentRole(mockRoles[0]);
-      
-      // Local storage'a kaydet
-      await AsyncStorage.setItem('auth', JSON.stringify({
-        user: mockUser,
-        roles: mockRoles
-      }));
-      
-      return { success: true, user: mockUser };
-      
-      // Gerçek API kodu (backend hazır olduğunda açılacak)
-      /*
-      const response = await api.login(username, password);
-      
-      if (response.success && response.user) {
-        const { user: userData, roles } = response;
-        
-        setUser(userData);
-        setAvailableRoles(roles);
-        setCurrentRole(roles[0]);
-        
-        // Local storage'a kaydet
-        await AsyncStorage.setItem('auth', JSON.stringify({
-          user: userData,
-          roles: roles
-        }));
-        
-        return { success: true, user: userData };
-      } else {
-        return { success: false, error: response.message || 'Giriş başarısız' };
-      }
-      */
     } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Bağlantı hatası. Lütfen tekrar deneyin.' 
-      };
+      console.error('❌ Oturum yükleme hatası:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const switchRole = (role) => {
-    if (availableRoles.includes(role)) {
-      setCurrentRole(role);
-      // Local storage'ı güncelle
-      AsyncStorage.getItem('auth').then(authData => {
-        if (authData) {
-          const auth = JSON.parse(authData);
-          auth.currentRole = role;
-          AsyncStorage.setItem('auth', JSON.stringify(auth));
+  const login = async (credentials) => {
+    try {
+      setIsLoading(true);
+      
+      // TODO: API çağrısı yapılacak
+      // Şimdilik mock veri kullanıyoruz - Farklı rol kombinasyonları
+      const mockUsers = {
+        'admin': {
+          id: 1,
+          business_id: 1,
+          username: 'admin',
+          full_name: 'Ahmet Yönetici',
+          phone: '+90 555 123 4567',
+          is_active: true,
+          roles: ['admin'], // Sadece admin rolü
+          created_at: new Date().toISOString(),
+        },
+        'chef': {
+          id: 2,
+          business_id: 1,
+          username: 'chef',
+          full_name: 'Mehmet Şef',
+          phone: '+90 555 234 5678',
+          is_active: true,
+          roles: ['chef'], // Sadece şef rolü
+          created_at: new Date().toISOString(),
+        },
+        'waiter': {
+          id: 3,
+          business_id: 1,
+          username: 'waiter',
+          full_name: 'Ayşe Garson',
+          phone: '+90 555 345 6789',
+          is_active: true,
+          roles: ['waiter'], // Sadece garson rolü
+          created_at: new Date().toISOString(),
+        },
+        'cashier': {
+          id: 4,
+          business_id: 1,
+          username: 'cashier',
+          full_name: 'Fatma Kasiyer',
+          phone: '+90 555 456 7890',
+          is_active: true,
+          roles: ['cashier'], // Sadece kasiyer rolü
+          created_at: new Date().toISOString(),
+        },
+        'chef_waiter': {
+          id: 5,
+          business_id: 1,
+          username: 'chef_waiter',
+          full_name: 'Ali Şef-Garson',
+          phone: '+90 555 567 8901',
+          is_active: true,
+          roles: ['chef', 'waiter'], // Şef ve garson rolleri
+          created_at: new Date().toISOString(),
+        },
+        'waiter_cashier': {
+          id: 6,
+          business_id: 1,
+          username: 'waiter_cashier',
+          full_name: 'Zeynep Garson-Kasiyer',
+          phone: '+90 555 678 9012',
+          is_active: true,
+          roles: ['waiter', 'cashier'], // Garson ve kasiyer rolleri
+          created_at: new Date().toISOString(),
+        },
+        'all_roles': {
+          id: 7,
+          business_id: 1,
+          username: 'all_roles',
+          full_name: 'Mustafa Tüm Roller',
+          phone: '+90 555 789 0123',
+          is_active: true,
+          roles: ['admin', 'chef', 'waiter', 'cashier'], // Tüm roller
+          created_at: new Date().toISOString(),
         }
-      });
+      };
+
+      // Şifre kontrolü
+      if (credentials.password !== '123') {
+        throw new Error('Şifre hatalı');
+      }
+
+      const selectedUser = mockUsers[credentials.username] || mockUsers['all_roles'];
+      
+      const mockResponse = {
+        user: selectedUser,
+        token: 'mock-jwt-token-' + Date.now(),
+        business: {
+          id: 1,
+          name: 'Test Restoran',
+          address: 'Test Adres',
+          phone: '+90 212 555 0123',
+          email: 'test@restoran.com',
+          is_active: true,
+        },
+      };
+
+      // Verileri state'e kaydet
+      setUser(mockResponse.user);
+      setBusiness(mockResponse.business);
+      setToken(mockResponse.token);
+      
+      // İlk rolü seç (admin varsa admin, yoksa ilk rol)
+      const firstRole = mockResponse.user.roles.includes('admin') 
+        ? 'admin' 
+        : mockResponse.user.roles[0];
+      setCurrentRole(firstRole);
+
+      // AsyncStorage'a kaydet
+      await AsyncStorage.setItem('user', JSON.stringify(mockResponse.user));
+      await AsyncStorage.setItem('business', JSON.stringify(mockResponse.business));
+      await AsyncStorage.setItem('token', mockResponse.token);
+      await AsyncStorage.setItem('currentRole', firstRole);
+
+      return true;
+    } catch (error) {
+      console.error('Giriş hatası:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      await api.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      // State'i temizle
       setUser(null);
+      setBusiness(null);
+      setToken(null);
       setCurrentRole(null);
-      setAvailableRoles([]);
-      await AsyncStorage.removeItem('auth');
-      await AsyncStorage.removeItem('authToken');
+      
+      // AsyncStorage'ı temizle
+      await AsyncStorage.multiRemove(['user', 'business', 'token', 'currentRole']);
+    } catch (error) {
+      console.error('❌ Çıkış hatası:', error);
+    }
+  };
+
+  const switchRole = (role) => {
+    if (user?.roles.includes(role)) {
+      setCurrentRole(role);
+      AsyncStorage.setItem('currentRole', role);
     }
   };
 
   const hasRole = (role) => {
-    return availableRoles.includes(role);
+    return user?.roles.includes(role) || false;
   };
 
   const hasAnyRole = (roles) => {
-    return roles.some(role => availableRoles.includes(role));
-  };
-
-  const refreshUser = async () => {
-    try {
-      const profile = await api.getProfile();
-      setUser(profile);
-      
-      // Local storage'ı güncelle
-      const authData = await AsyncStorage.getItem('auth');
-      if (authData) {
-        const auth = JSON.parse(authData);
-        auth.user = profile;
-        await AsyncStorage.setItem('auth', JSON.stringify(auth));
-      }
-    } catch (error) {
-      console.error('Refresh user error:', error);
-    }
+    return roles.some(role => user?.roles.includes(role)) || false;
   };
 
   const value = {
     user,
-    currentRole,
-    availableRoles,
+    business,
+    token,
     isLoading,
-    isInitialized,
-    isAuthenticated: !!user,
+    isAuthenticated,
+    currentRole,
     login,
     logout,
     switchRole,
     hasRole,
     hasAnyRole,
-    refreshUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

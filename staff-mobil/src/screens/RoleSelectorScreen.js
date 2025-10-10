@@ -1,192 +1,223 @@
+/**
+ * ROLE SELECTOR SCREEN - Rol Seçim Ekranı
+ * 
+ * Bu ekran kullanıcının birden fazla rolü olduğunda hangi rol ile çalışmak istediğini seçmesini sağlar.
+ * Rol seçildikten sonra ilgili dashboard'a yönlendirir. Üstte hızlı rol değiştirme butonları bulunur.
+ */
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Title, Button, Paragraph, Surface } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-const roleInfo = {
-  admin: { 
-    title: 'Yönetici', 
-    icon: '👑', 
-    color: '#667eea',
-    gradient: ['#667eea', '#764ba2'],
-    description: 'İşletme yönetimi ve raporlar'
-  },
-  chef: { 
-    title: 'Şef', 
-    icon: '👨‍🍳', 
-    color: '#ff9800',
-    gradient: ['#ff9800', '#f57c00'],
-    description: 'Sipariş yönetimi ve mutfak'
-  },
-  waiter: { 
-    title: 'Garson', 
-    icon: '🍽️', 
-    color: '#4caf50',
-    gradient: ['#4caf50', '#388e3c'],
-    description: 'Masa servisi ve müşteri ilişkileri'
-  },
-  cashier: { 
-    title: 'Kasiyer', 
-    icon: '💰', 
-    color: '#9c27b0',
-    gradient: ['#9c27b0', '#7b1fa2'],
-    description: 'Ödeme işlemleri ve kasa yönetimi'
-  },
-};
+const RoleSelectorScreen = ({ navigation }) => {
+  const { user, currentRole, switchRole, hasRole } = useAuth();
 
-export default function RoleSelectorScreen() {
-  const { availableRoles, switchRole, user } = useAuth();
+  const roles = [
+    {
+      id: 'admin',
+      name: 'Yönetici',
+      description: 'Tüm sistem yönetimi, raporlar ve ayarlar',
+      icon: '👑',
+      color: '#dc2626',
+    },
+    {
+      id: 'chef',
+      name: 'Şef',
+      description: 'Yemek siparişlerini yönetme ve hazırlama',
+      icon: '👨‍🍳',
+      color: '#ea580c',
+    },
+    {
+      id: 'waiter',
+      name: 'Garson',
+      description: 'Masa takibi, sipariş teslimi ve müşteri hizmetleri',
+      icon: '👨‍💼',
+      color: '#059669',
+    },
+    {
+      id: 'cashier',
+      name: 'Kasiyer',
+      description: 'Ödeme işlemleri ve kasa yönetimi',
+      icon: '💰',
+      color: '#7c3aed',
+    },
+  ];
 
-  const handleRoleSelect = (role) => {
-    switchRole(role);
+  const handleRoleSelect = (roleId) => {
+    switchRole(roleId);
+    navigation.replace('Main');
   };
 
-  return (
-    <LinearGradient
-      colors={['#f8f9fa', '#e9ecef']}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.welcomeCircle}>
-            <Title style={styles.welcomeIcon}>👋</Title>
-          </View>
-          <Title style={styles.title}>Hoş Geldin!</Title>
-          <Paragraph style={styles.subtitle}>
-            {user?.full_name}, hangi rol ile devam etmek istiyorsun?
-          </Paragraph>
-        </View>
+  const getAvailableRoles = () => {
+    return roles.filter(role => hasRole(role.id));
+  };
 
-        {/* Role Cards */}
-        <View style={styles.rolesContainer}>
-          {availableRoles.map((role) => {
-            const info = roleInfo[role];
-            return (
-              <Surface key={role} style={styles.roleCard} elevation={4}>
-                <LinearGradient
-                  colors={info.gradient}
-                  style={styles.roleGradient}
-                >
-                  <View style={styles.roleContent}>
-                    <View style={styles.roleIconContainer}>
-                      <Title style={styles.roleIcon}>{info.icon}</Title>
-                    </View>
-                    <Title style={styles.roleTitle}>{info.title}</Title>
-                    <Paragraph style={styles.roleDescription}>
-                      {info.description}
-                    </Paragraph>
-                    <Button
-                      mode="contained"
-                      onPress={() => handleRoleSelect(role)}
-                      style={styles.selectButton}
-                      contentStyle={styles.buttonContent}
-                      labelStyle={styles.buttonLabel}
-                    >
-                      Seç
-                    </Button>
-                  </View>
-                </LinearGradient>
-              </Surface>
-            );
-          })}
-        </View>
+  const availableRoles = getAvailableRoles();
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Rol Seçimi</Text>
+        <Text style={styles.subtitle}>
+          Hangi rol ile çalışmak istiyorsunuz?
+        </Text>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {availableRoles.map((role) => (
+          <TouchableOpacity
+            key={role.id}
+            style={[
+              styles.roleCard,
+              { borderLeftColor: role.color },
+              currentRole === role.id && styles.selectedCard
+            ]}
+            onPress={() => handleRoleSelect(role.id)}
+          >
+            <View style={styles.roleHeader}>
+              <Text style={styles.roleIcon}>{role.icon}</Text>
+              <View style={styles.roleInfo}>
+                <Text style={styles.roleName}>{role.name}</Text>
+                <Text style={styles.roleDescription}>{role.description}</Text>
+              </View>
+              {currentRole === role.id && (
+                <View style={[styles.selectedBadge, { backgroundColor: role.color }]}>
+                  <Text style={styles.selectedBadgeText}>Aktif</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
-    </LinearGradient>
+
+      <View style={styles.quickSwitch}>
+        <Text style={styles.quickSwitchTitle}>Hızlı Geçiş</Text>
+        <View style={styles.quickSwitchButtons}>
+          {availableRoles.map((role) => (
+            <TouchableOpacity
+              key={role.id}
+              style={[
+                styles.quickSwitchButton,
+                { backgroundColor: role.color },
+                currentRole === role.id && styles.quickSwitchButtonActive
+              ]}
+              onPress={() => handleRoleSelect(role.id)}
+            >
+              <Text style={styles.quickSwitchButtonText}>{role.icon}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 30,
-    paddingTop: 40,
-  },
-  welcomeCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  welcomeIcon: {
-    fontSize: 24,
+    padding: 20,
+    paddingTop: 10,
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 8,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#2d3748',
+    color: '#1e3a8a',
+    marginBottom: 8,
   },
   subtitle: {
-    textAlign: 'center',
-    color: '#718096',
     fontSize: 16,
-    lineHeight: 24,
+    color: '#6b7280',
   },
-  rolesContainer: {
-    gap: 16,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   roleCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 16,
+    borderLeftWidth: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
   },
-  roleGradient: {
-    padding: 24,
+  selectedCard: {
+    borderWidth: 2,
+    borderColor: '#1e3a8a',
   },
-  roleContent: {
+  roleHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  roleIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   roleIcon: {
-    fontSize: 28,
+    fontSize: 32,
+    marginRight: 16,
   },
-  roleTitle: {
-    textAlign: 'center',
-    marginBottom: 8,
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
+  roleInfo: {
+    flex: 1,
+  },
+  roleName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
   },
   roleDescription: {
-    textAlign: 'center',
-    marginBottom: 20,
-    color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
+    color: '#6b7280',
     lineHeight: 20,
   },
-  selectButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
-    minWidth: 100,
-  },
-  buttonContent: {
+  selectedBadge: {
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    paddingHorizontal: 16,
+    borderRadius: 12,
   },
-  buttonLabel: {
+  selectedBadgeText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  quickSwitch: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  quickSwitchTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#374151',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  quickSwitchButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  quickSwitchButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.8,
+  },
+  quickSwitchButtonActive: {
+    opacity: 1,
+    transform: [{ scale: 1.1 }],
+  },
+  quickSwitchButtonText: {
+    fontSize: 20,
   },
 });
+
+export default RoleSelectorScreen;

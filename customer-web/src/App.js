@@ -1,17 +1,39 @@
-import React from "react";
+/**
+ * MAIN APP COMPONENT - Ana Uygulama Bileşeni
+ * 
+ * Bu bileşen tüm uygulamanın ana yapısını oluşturur. Router yapılandırması, context provider'ları ve tüm sayfaları içerir.
+ * PWA özelliklerini başlatır ve bildirim izni ister. ProtectedRoute ile sayfa koruması sağlar.
+ */
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import { TableProvider } from "./context/TableContext";
 import Header from "./components/Header";
 import PaymentButton from "./components/PaymentButton";
+import InstallButton from "./components/InstallButton";
 import MenuPage from "./pages/MenuPage";
 import CartPage from "./pages/CartPage";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import OrderTracking from "./pages/OrderTracking";
 import PaymentPage from "./pages/PaymentPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useNotifications } from "./hooks/useNotifications";
 
 function App() {
+  const { requestPermission, subscribeToNotifications } = useNotifications();
+
+  useEffect(() => {
+    // Request notification permission on app load
+    const initializeNotifications = async () => {
+      const hasPermission = await requestPermission();
+      if (hasPermission) {
+        await subscribeToNotifications();
+      }
+    };
+
+    initializeNotifications();
+  }, [requestPermission, subscribeToNotifications]);
+
   return (
     <TableProvider>
       <CartProvider>
@@ -49,12 +71,13 @@ function App() {
                   <PaymentPage />
                 </ProtectedRoute>
               } />
-                    </Routes>
-                    <PaymentButton />
-                  </div>
-                </Router>
-              </CartProvider>
-            </TableProvider>
+            </Routes>
+            <PaymentButton />
+            <InstallButton />
+          </div>
+        </Router>
+      </CartProvider>
+    </TableProvider>
   );
 }
 

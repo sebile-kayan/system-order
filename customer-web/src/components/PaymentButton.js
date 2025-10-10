@@ -29,8 +29,29 @@ import React from 'react';
 import { useCart } from '../context/CartContext';
 
 const PaymentButton = () => {
-  const { calculateTotal, hasOrdered, orderTotal } = useCart();
-  const total = hasOrdered ? orderTotal : calculateTotal();
+  const { calculateTotal, hasOrdered, orderTotal, cart, isPaid } = useCart();
+  
+  // Ödeme mantığı:
+  // 1. Sipariş verilmiş ama ödeme alınmamışsa (hasOrdered=true, isPaid=false): 
+  //    - Yeni ürün varsa: önceki tutar + yeni tutar
+  //    - Yeni ürün yoksa: önceki tutar
+  // 2. Hiç sipariş verilmemişse veya ödeme alınmışsa: sepet tutarı
+  const currentCartTotal = calculateTotal();
+  let total = 0;
+  
+  if (hasOrdered && !isPaid) {
+    total = orderTotal + currentCartTotal; // Önceki tutar + yeni ürünler
+    console.log('Payment Button: Sipariş verilmiş, toplam:', total);
+  } else {
+    total = currentCartTotal; // Normal sepet tutarı (yeni sipariş başlangıcı)
+    console.log('Payment Button: Normal sepet tutarı:', total);
+  }
+
+  // Debug için console log
+  React.useEffect(() => {
+    console.log('PAYMENT BUTTON DEBUG:', { isPaid, hasOrdered, orderTotal, cartLength: cart.length });
+    console.log('Current Total:', total);
+  }, [isPaid, hasOrdered, orderTotal, cart, total]);
 
   // Buton her zaman görünür olacak, sepet boş olsa bile
   return (
