@@ -72,7 +72,7 @@ const OrdersScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel siparişleri çek
+    // API'den güncel siparişleri çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);

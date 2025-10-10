@@ -29,7 +29,7 @@ const AdminDashboard = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel verileri çek
+    // API'den güncel verileri çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);

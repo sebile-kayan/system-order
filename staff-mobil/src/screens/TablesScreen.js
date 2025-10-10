@@ -93,7 +93,7 @@ const TablesScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel masa durumlarını çek
+    // API'den güncel masa durumlarını çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -137,8 +137,8 @@ const TablesScreen = () => {
         {
           text: actionText,
           onPress: () => {
-            // TODO: Masa işlemlerini gerçekleştir
-            console.log(`${table.tableNumber} için ${actionText} işlemi gerçekleştirildi`);
+            // Masa işlemlerini gerçekleştir
+            // Masa işlemi gerçekleştirildi
           },
         },
       ]

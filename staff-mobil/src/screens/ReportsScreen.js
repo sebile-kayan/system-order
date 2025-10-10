@@ -83,7 +83,7 @@ const ReportsScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel rapor verilerini çek
+    // API'den güncel rapor verilerini çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);

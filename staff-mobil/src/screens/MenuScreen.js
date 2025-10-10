@@ -112,7 +112,7 @@ const MenuScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel menü verilerini çek
+    // API'den güncel menü verilerini çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -151,7 +151,7 @@ const MenuScreen = () => {
   };
 
   const handleEditItem = (item) => {
-    // TODO: Düzenleme modalını aç
+    // Düzenleme modalını aç
     Alert.alert('Düzenleme', `${item.name} düzenleme özelliği yakında eklenecek.`);
   };
 

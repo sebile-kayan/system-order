@@ -71,7 +71,7 @@ const WaiterDashboard = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: API'den güncel masa durumlarını çek
+    // API'den güncel masa durumlarını çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);

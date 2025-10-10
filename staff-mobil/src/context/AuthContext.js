@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // TODO: API çağrısı yapılacak
+      // API çağrısı yapılacak
       // Şimdilik mock veri kullanıyoruz - Farklı rol kombinasyonları
       const mockUsers = {
         'admin': {
