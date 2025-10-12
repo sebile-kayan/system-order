@@ -4,18 +4,20 @@
  * Bu ekran kasiyer rolündeki kullanıcılar için tasarlanmıştır. Ödeme işlemleri,
  * masa ödeme durumu güncelleme, günlük kasa raporu ve ödeme takibi araçlarına erişim sağlar.
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import Header from '../../components/Header';
+import DailySummaryCard from '../../components/DailySummaryCard';
+import FastActionCard from '../../components/FastActionCard';
 
 const CashierDashboard = () => {
   const { user, business, currentRole, hasRole, switchRole, logout } = useAuth();
@@ -98,14 +100,15 @@ const CashierDashboard = () => {
   };
 
 
-  const getAvailableRoles = () => {
+  const availableRoles = useMemo(() => {
+    if (!user?.roles) return [];
     const roleButtons = [
       { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
       { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
       { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: '#059669' },
     ];
-    return roleButtons.filter(role => hasRole(role.id));
-  };
+    return roleButtons.filter(role => user.roles.includes(role.id));
+  }, [user?.roles]);
 
   const handleLogout = () => {
     // Direkt logout çağır
@@ -117,35 +120,32 @@ const CashierDashboard = () => {
   const emptyTables = tables.filter(table => table.status === 'empty');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* İçerik - Kaydırılabilir */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Merhaba, {user?.full_name}</Text>
-            <Text style={styles.businessName}>{business?.name} - Kasa</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.cashierBadge}>
-              <Text style={styles.cashierBadgeText}>💰 KASİYER</Text>
-            </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>⏻</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Header - Kaydırıldıkça kaybolacak */}
+        <Header
+          user={user}
+          business={business}
+          currentRole={currentRole}
+          onLogout={handleLogout}
+          badgeText={getRoleConfig(currentRole)?.badgeText}
+          badgeColor={getRoleConfig(currentRole)?.color}
+          sticky={false}  // Header kaydırıldıkça kaybolacak
+        />
 
         {/* Hızlı Rol Değiştirme */}
-        {getAvailableRoles().length > 0 && (
+        {availableRoles.length > 0 && (
           <View style={styles.roleSwitchSection}>
             <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
             <View style={styles.roleSwitchButtons}>
-              {getAvailableRoles().map((role) => (
+              {availableRoles.map((role) => (
                 <TouchableOpacity
                   key={role.id}
                   style={[
@@ -167,22 +167,26 @@ const CashierDashboard = () => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>📊 Günlük Kasa Durumu</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>₺{dailyStats.totalRevenue.toFixed(2)}</Text>
-              <Text style={styles.statLabel}>Toplam Ciro</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{dailyStats.completedPayments}</Text>
-              <Text style={styles.statLabel}>Tamamlanan Ödeme</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{dailyStats.pendingPayments}</Text>
-              <Text style={styles.statLabel}>Bekleyen Ödeme</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>₺{dailyStats.averageAmount.toFixed(2)}</Text>
-              <Text style={styles.statLabel}>Ortalama Tutar</Text>
-            </View>
+            <DailySummaryCard 
+              number={`₺${dailyStats.totalRevenue.toFixed(0)}`} 
+              label="Toplam Ciro" 
+              color="#10b981"
+            />
+            <DailySummaryCard 
+              number={dailyStats.completedPayments} 
+              label="Tamamlanan Ödeme" 
+              color="#3b82f6"
+            />
+            <DailySummaryCard 
+              number={dailyStats.pendingPayments} 
+              label="Bekleyen Ödeme" 
+              color="#f59e0b"
+            />
+            <DailySummaryCard 
+              number={`₺${dailyStats.averageAmount.toFixed(0)}`} 
+              label="Ortalama Tutar" 
+              color="#7c3aed"
+            />
           </View>
         </View>
 
@@ -269,27 +273,31 @@ const CashierDashboard = () => {
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: '#7c3aed' }]}>
-                <Text style={styles.actionIconText}>📊</Text>
-              </View>
-              <Text style={styles.actionTitle}>Günlük Kasa Raporu</Text>
-              <Text style={styles.actionDescription}>Kasa raporu görüntüle</Text>
-            </TouchableOpacity>
+            <FastActionCard
+              title="Günlük Kasa Raporu"
+              description="Kasa raporu görüntüle"
+              icon="📊"
+              color="#7c3aed"
+              onPress={() => console.log('Kasa raporu tıklandı')}
+            />
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   scrollView: {
     flex: 1,
+    marginTop: 0,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
   },
   header: {
     flexDirection: 'row',

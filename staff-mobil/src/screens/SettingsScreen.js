@@ -11,11 +11,10 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Alert,
   Switch,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const SettingsScreen = () => {
   const { user, business, hasRole, switchRole, logout } = useAuth();
@@ -72,10 +71,12 @@ const SettingsScreen = () => {
   const availableRoles = getAvailableRoles();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ayarlar</Text>
-        <Text style={styles.headerSubtitle}>Uygulama ve hesap ayarları</Text>
+    <View style={styles.container}>
+      <View style={styles.safeArea}>
+        <View style={[styles.header, { paddingTop: 50 }]}>
+          <Text style={styles.headerTitle}>Ayarlar</Text>
+          <Text style={styles.headerSubtitle}>Uygulama ve hesap ayarları</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -211,14 +212,17 @@ const SettingsScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,

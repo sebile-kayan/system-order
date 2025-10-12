@@ -4,18 +4,20 @@
  * Bu ekran şef rolündeki kullanıcılar için tasarlanmıştır. Yemek siparişlerini görüntüleme,
  * sipariş durumu güncelleme, stok takibi ve mutfak yönetimi araçlarına erişim sağlar.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import Header from '../../components/Header';
+import DailySummaryCard from '../../components/DailySummaryCard';
+import FastActionCard from '../../components/FastActionCard';
 
 const ChefDashboard = () => {
   const { user, business, currentRole, hasRole, switchRole, logout } = useAuth();
@@ -114,9 +116,10 @@ const ChefDashboard = () => {
     { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
   ];
 
-  const getAvailableRoles = () => {
-    return roleButtons.filter(role => hasRole(role.id));
-  };
+  const availableRoles = useMemo(() => {
+    if (!user?.roles) return [];
+    return roleButtons.filter(role => user.roles.includes(role.id));
+  }, [user?.roles]);
 
   const handleLogout = () => {
     // Direkt logout çağır
@@ -124,35 +127,32 @@ const ChefDashboard = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* İçerik - Kaydırılabilir */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Merhaba, {user?.full_name}</Text>
-            <Text style={styles.businessName}>{business?.name} - Mutfak</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.chefBadge}>
-              <Text style={styles.chefBadgeText}>👨‍🍳 ŞEF</Text>
-            </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>⏻</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Header - Kaydırıldıkça kaybolacak */}
+        <Header
+          user={user}
+          business={business}
+          currentRole={currentRole}
+          onLogout={handleLogout}
+          badgeText={getRoleConfig(currentRole)?.badgeText}
+          badgeColor={getRoleConfig(currentRole)?.color}
+          sticky={false}  // Header kaydırıldıkça kaybolacak
+        />
 
         {/* Hızlı Rol Değiştirme */}
-        {getAvailableRoles().length > 0 && (
+        {availableRoles.length > 0 && (
           <View style={styles.roleSwitchSection}>
             <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
             <View style={styles.roleSwitchButtons}>
-              {getAvailableRoles().map((role) => (
+              {availableRoles.map((role) => (
                 <TouchableOpacity
                   key={role.id}
                   style={[
@@ -174,22 +174,26 @@ const ChefDashboard = () => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Mutfak Durumu</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{orders.filter(o => o.status === 'preparing').length}</Text>
-              <Text style={styles.statLabel}>Hazırlanıyor</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{orders.filter(o => o.status === 'ready').length}</Text>
-              <Text style={styles.statLabel}>Hazır</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{orders.filter(o => o.status === 'pending').length}</Text>
-              <Text style={styles.statLabel}>Bekliyor</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{orders.length}</Text>
-              <Text style={styles.statLabel}>Toplam</Text>
-            </View>
+            <DailySummaryCard 
+              number={orders.filter(o => o.status === 'preparing').length} 
+              label="Hazırlanıyor" 
+              color="#ea580c"
+            />
+            <DailySummaryCard 
+              number={orders.filter(o => o.status === 'ready').length} 
+              label="Hazır" 
+              color="#10b981"
+            />
+            <DailySummaryCard 
+              number={orders.filter(o => o.status === 'pending').length} 
+              label="Bekliyor" 
+              color="#f59e0b"
+            />
+            <DailySummaryCard 
+              number={orders.length} 
+              label="Toplam" 
+              color="#6b7280"
+            />
           </View>
         </View>
 
@@ -247,90 +251,38 @@ const ChefDashboard = () => {
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: '#ea580c' }]}>
-                <Text style={styles.actionIconText}>⏰</Text>
-              </View>
-              <Text style={styles.actionTitle}>Zaman Takibi</Text>
-              <Text style={styles.actionDescription}>Hazırlama sürelerini ayarla</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: '#7c3aed' }]}>
-                <Text style={styles.actionIconText}>📊</Text>
-              </View>
-              <Text style={styles.actionTitle}>Stok Durumu</Text>
-              <Text style={styles.actionDescription}>Mutfak envanteri</Text>
-            </TouchableOpacity>
+            <FastActionCard
+              title="Zaman Takibi"
+              description="Hazırlama sürelerini ayarla"
+              icon="⏰"
+              color="#ea580c"
+              onPress={() => console.log('Zaman takibi tıklandı')}
+            />
+            <FastActionCard
+              title="Stok Durumu"
+              description="Mutfak envanteri"
+              icon="📊"
+              color="#7c3aed"
+              onPress={() => console.log('Stok durumu tıklandı')}
+            />
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   scrollView: {
     flex: 1,
+    marginTop: 0,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    minHeight: 70,
-  },
-  headerLeft: {
-    flex: 1,
-    flexShrink: 1,
-    paddingRight: 8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-  },
-  logoutButton: {
-    backgroundColor: '#dc2626',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  greeting: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    flexShrink: 1,
-  },
-  businessName: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-    flexShrink: 1,
-  },
-  chefBadge: {
-    backgroundColor: '#ea580c',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  chefBadgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
   },
   roleSwitchSection: {
     padding: 16,
@@ -388,25 +340,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  statCard: {
-    width: '48%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ea580c',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
   },
   ordersSection: {
     padding: 20,
@@ -506,39 +439,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '48%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionIconText: {
-    fontSize: 20,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  actionDescription: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
   },
 });
 

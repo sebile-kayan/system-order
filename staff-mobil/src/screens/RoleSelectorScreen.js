@@ -1,7 +1,7 @@
 /**
- * ROLE SELECTOR SCREEN - Rol Seçim Ekranı
+ * ROLE SELECTOR SCREEN - Login Sonrası Ana Rol Seçim Ekranı
  * 
- * Bu ekran kullanıcının birden fazla rolü olduğunda hangi rol ile çalışmak istediğini seçmesini sağlar.
+ * Bu ekran kullanıcının birden fazla rolü olduğunda login sonrası ilk hangi rol ile çalışmak istediğini seçmesini sağlar.
  * Rol seçildikten sonra ilgili dashboard'a yönlendirir. Üstte hızlı rol değiştirme butonları bulunur.
  */
 import React from 'react';
@@ -10,10 +10,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const RoleSelectorScreen = ({ navigation }) => {
   const { user, currentRole, switchRole, hasRole } = useAuth();
@@ -51,7 +50,7 @@ const RoleSelectorScreen = ({ navigation }) => {
 
   const handleRoleSelect = (roleId) => {
     switchRole(roleId);
-    navigation.replace('Main');
+    // Navigation otomatik olarak AppNavigator'da conditional rendering ile yapılacak
   };
 
   const getAvailableRoles = () => {
@@ -61,15 +60,14 @@ const RoleSelectorScreen = ({ navigation }) => {
   const availableRoles = getAvailableRoles();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Rol Seçimi</Text>
-        <Text style={styles.subtitle}>
-          Hangi rol ile çalışmak istiyorsunuz?
-        </Text>
-      </View>
-
+    <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Rol Seçimi</Text>
+          <Text style={styles.subtitle}>
+            Hangi rol ile çalışmak istiyorsunuz?
+          </Text>
+        </View>
         {availableRoles.map((role) => (
           <TouchableOpacity
             key={role.id}
@@ -114,18 +112,21 @@ const RoleSelectorScreen = ({ navigation }) => {
           ))}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
-    paddingTop: 10,
+    paddingTop: 50, // Header'ı aşağı taşıdık
   },
   title: {
     fontSize: 24,

@@ -7,12 +7,12 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 // Ekranlar
 import LoginScreen from '../screens/LoginScreen';
 import RoleSelectorScreen from '../screens/RoleSelectorScreen';
-import MainTabNavigator from './MainTabNavigator';
+import CommonTabNavigator from './CommonTabNavigator';
 
 const Stack = createStackNavigator();
 
@@ -40,7 +40,7 @@ const AppNavigator = () => {
           <Stack.Screen name="RoleSelector" component={RoleSelectorScreen} />
         ) : (
           // Ana uygulama
-          <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen name="Main" component={CommonTabNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

@@ -17,7 +17,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -69,6 +69,8 @@ const LoginScreen = ({ navigation }) => {
               placeholder="Kullanıcı adınızı giriniz"
               autoCapitalize="none"
               autoCorrect={false}
+              accessibilityLabel="Kullanıcı adı"
+              testID="username-input"
             />
           </View>
 
@@ -82,6 +84,8 @@ const LoginScreen = ({ navigation }) => {
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
+              accessibilityLabel="Şifre"
+              testID="password-input"
             />
           </View>
 

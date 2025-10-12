@@ -11,11 +11,10 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const OrdersScreen = () => {
   const { user, currentRole, hasRole } = useAuth();
@@ -136,15 +135,17 @@ const OrdersScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Siparişler</Text>
-        <Text style={styles.headerSubtitle}>
-          {currentRole === 'admin' ? 'Yönetici' :
-           currentRole === 'chef' ? 'Şef' :
-           currentRole === 'waiter' ? 'Garson' :
-           currentRole === 'cashier' ? 'Kasiyer' : 'Çalışan'} Görünümü
-        </Text>
+    <View style={styles.container}>
+      <View style={styles.safeArea}>
+        <View style={[styles.header, { paddingTop: 50 }]}>
+          <Text style={styles.headerTitle}>Siparişler</Text>
+          <Text style={styles.headerSubtitle}>
+            {currentRole === 'admin' ? 'Yönetici' :
+             currentRole === 'chef' ? 'Şef' :
+             currentRole === 'waiter' ? 'Garson' :
+             currentRole === 'cashier' ? 'Kasiyer' : 'Çalışan'} Görünümü
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -161,6 +162,8 @@ const OrdersScreen = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#9ca3af"
+            accessibilityLabel="Sipariş arama"
+            testID="orders-search-input"
           />
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
@@ -258,14 +261,17 @@ const OrdersScreen = () => {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,

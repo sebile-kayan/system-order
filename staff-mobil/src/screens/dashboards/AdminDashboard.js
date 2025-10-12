@@ -1,21 +1,23 @@
 /**
  * ADMIN DASHBOARD - Yönetici Ana Ekranı
  * 
- * Bu ekran admin rolündeki kullanıcılar için tasarlanmıştır. Günlük istatistikler, hızlı işlemler,
- * rol değiştirme butonları ve sistem yönetimi araçlarına erişim sağlar.
+ * Admin rolündeki kullanıcılar için tasarlanmış ana ekran. Ortak bileşenler kullanarak
+ * günlük istatistikler, hızlı işlemler ve sistem yönetimi araçlarına erişim sağlar.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, ROLE_BUTTONS, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import Header from '../../components/Header';
+import DailySummaryCard from '../../components/DailySummaryCard';
+import FastActionCard from '../../components/FastActionCard';
 
 const AdminDashboard = ({ navigation }) => {
   const { user, business, hasRole, switchRole, logout, currentRole } = useAuth();
@@ -35,16 +37,11 @@ const AdminDashboard = ({ navigation }) => {
     }, 1000);
   };
 
-  // Rol değiştirme butonları
-  const roleButtons = [
-    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
-    { id: 'waiter', name: 'Garson', icon: '🍽️', color: '#10b981' },
-    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
-  ];
-
-  const getAvailableRoles = () => {
-    return roleButtons.filter(role => hasRole(role.id));
-  };
+  // Kullanıcının sahip olduğu rolleri al (admin hariç) - useMemo ile optimize edildi
+  const availableRoles = useMemo(() => {
+    if (!user?.roles) return [];
+    return getAvailableRoles(user.roles).filter(role => role.id !== 'admin');
+  }, [user?.roles]);
 
   const quickActions = [
     {
@@ -84,41 +81,38 @@ const AdminDashboard = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* İçerik - Kaydırılabilir */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Merhaba, {user?.full_name}</Text>
-            <Text style={styles.businessName}>{business?.name}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.adminBadge}>
-              <Text style={styles.adminBadgeText}>👑 YÖNETİCİ</Text>
-            </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>⏻</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Header - Kaydırıldıkça kaybolacak */}
+        <Header
+          user={user}
+          business={business}
+          currentRole={currentRole}
+          onLogout={handleLogout}
+          badgeText={getRoleConfig(currentRole)?.badgeText}
+          badgeColor={getRoleConfig(currentRole)?.color}
+          sticky={false}  // Header kaydırıldıkça kaybolacak
+        />
 
         {/* Hızlı Rol Değiştirme */}
-        {getAvailableRoles().length > 0 && (
+        {availableRoles.length > 1 && (
           <View style={styles.roleSwitchSection}>
             <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
             <View style={styles.roleSwitchButtons}>
-              {getAvailableRoles().map((role) => (
+              {availableRoles.map((role) => (
                 <TouchableOpacity
                   key={role.id}
                   style={[
                     styles.roleSwitchButton,
                     { backgroundColor: role.color },
-                    currentRole === role.id && styles.activeRoleButton
+                    currentRole === role.id && styles.activeRoleButton,
                   ]}
                   onPress={() => switchRole(role.id)}
                 >
@@ -134,22 +128,10 @@ const AdminDashboard = ({ navigation }) => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Günlük Özet</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.todayOrders}</Text>
-              <Text style={styles.statLabel}>Sipariş</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>₺{stats.todayRevenue.toFixed(0)}</Text>
-              <Text style={styles.statLabel}>Ciro</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.activeTables}</Text>
-              <Text style={styles.statLabel}>Aktif Masa</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.pendingOrders}</Text>
-              <Text style={styles.statLabel}>Bekleyen</Text>
-            </View>
+            <DailySummaryCard number={stats.todayOrders} label="Sipariş" />
+            <DailySummaryCard number={`₺${stats.todayRevenue.toFixed(0)}`} label="Ciro" />
+            <DailySummaryCard number={stats.activeTables} label="Aktif Masa" />
+            <DailySummaryCard number={stats.pendingOrders} label="Bekleyen" />
           </View>
         </View>
 
@@ -158,17 +140,19 @@ const AdminDashboard = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.actionsGrid}>
             {quickActions.map((action) => (
-              <TouchableOpacity
+              <FastActionCard
                 key={action.id}
-                style={styles.actionCard}
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                color={action.color}
                 onPress={() => {
                   switch(action.id) {
                     case 'tables':
-                      navigation.navigate('Masa yönetimi yakında eklenecek');
+                      navigation.navigate('TableManagement');
                       break;
                     case 'employees':
-                      // Direkt alert göster
-                      console.log('Çalışan yönetimi yakında eklenecek');
+                      navigation.navigate('Employees');
                       break;
                     case 'menu':
                       navigation.navigate('Menu');
@@ -180,13 +164,7 @@ const AdminDashboard = ({ navigation }) => {
                       console.log(`${action.title} tıklandı`);
                   }
                 }}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
-                  <Text style={styles.actionIconText}>{action.icon}</Text>
-                </View>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-                <Text style={styles.actionDescription}>{action.description}</Text>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         </View>
@@ -219,17 +197,21 @@ const AdminDashboard = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   scrollView: {
     flex: 1,
+    marginTop: 0,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
   },
   header: {
     flexDirection: 'row',
@@ -481,6 +463,47 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  roleSwitchSection: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  roleSwitchTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  roleSwitchButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  roleSwitchButton: {
+    flex: 1,
+    marginHorizontal: 4,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    opacity: 0.8,
+  },
+  activeRoleButton: {
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+    elevation: 4,
+  },
+  roleSwitchIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  roleSwitchText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
 

@@ -11,10 +11,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const ReportsScreen = () => {
   const { user, hasRole } = useAuth();
@@ -25,15 +24,17 @@ const ReportsScreen = () => {
   // Admin kontrolü
   if (!hasRole('admin')) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.accessDenied}>
-          <Text style={styles.accessDeniedIcon}>📊</Text>
-          <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
-          <Text style={styles.accessDeniedText}>
-            Bu sayfaya erişim için admin yetkisi gereklidir.
-          </Text>
+      <View style={styles.container}>
+        <View style={styles.safeArea}>
+          <View style={[styles.accessDenied, { paddingTop: 50 }]}>
+            <Text style={styles.accessDeniedIcon}>📊</Text>
+            <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
+            <Text style={styles.accessDeniedText}>
+              Bu sayfaya erişim için admin yetkisi gereklidir.
+            </Text>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -226,10 +227,12 @@ const ReportsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Raporlar</Text>
-        <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
+    <View style={styles.container}>
+      <View style={styles.safeArea}>
+        <View style={[styles.header, { paddingTop: 50 }]}>
+          <Text style={styles.headerTitle}>Raporlar</Text>
+          <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -314,14 +317,33 @@ const ReportsScreen = () => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
   },
   accessDenied: {
     flex: 1,

@@ -1,23 +1,15 @@
 /**
  * MAIN APP COMPONENT - Ana Uygulama Bileşeni
- * 
+ * Ana stack yığın yapısı ana yönlendirme için kullanılır.  
  * Bu bileşen tüm uygulamanın ana yapısını oluşturur. AuthProvider ile kimlik doğrulama
  * yönetimini sağlar ve AppNavigator ile navigasyon yapısını yönetir.
  */
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
-import { AuthProvider } from './src/context/AuthContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './src/context/AuthRolesContext';
 import AppNavigator from './src/navigation/AppNavigator';
-
-// Suppress the pointerEvents deprecation warning from react-native-paper
-const originalWarn = console.warn;
-console.warn = (...args) => {
-  if (args[0] && args[0].includes && args[0].includes('props.pointerEvents is deprecated')) {
-    return; // Suppress this specific warning
-  }
-  originalWarn.apply(console, args);
-};
 
 const theme = {
   ...MD3LightTheme,
@@ -44,11 +36,13 @@ const theme = {
 
 export default function App() {
   return (
-    <PaperProvider theme={theme}>
-      <AuthProvider>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </AuthProvider>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <AuthProvider>
+          <AppNavigator />
+          <StatusBar style="auto" />
+        </AuthProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

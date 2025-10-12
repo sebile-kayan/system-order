@@ -4,18 +4,20 @@
  * Bu ekran garson rolündeki kullanıcılar için tasarlanmıştır. Masa durumu takibi,
  * sipariş teslimi, müşteri hizmetleri ve masa yönetimi araçlarına erişim sağlar.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import Header from '../../components/Header';
+import DailySummaryCard from '../../components/DailySummaryCard';
+import FastActionCard from '../../components/FastActionCard';
 
 const WaiterDashboard = () => {
   const { user, business, currentRole, hasRole, switchRole, logout } = useAuth();
@@ -158,9 +160,10 @@ const WaiterDashboard = () => {
     { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
   ];
 
-  const getAvailableRoles = () => {
-    return roleButtons.filter(role => hasRole(role.id));
-  };
+  const availableRoles = useMemo(() => {
+    if (!user?.roles) return [];
+    return roleButtons.filter(role => user.roles.includes(role.id));
+  }, [user?.roles]);
 
   const handleLogout = () => {
     // Direkt logout çağır
@@ -172,35 +175,32 @@ const WaiterDashboard = () => {
   const readyOrders = tables.filter(table => table.orderStatus === 'ready');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* İçerik - Kaydırılabilir */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Merhaba, {user?.full_name}</Text>
-            <Text style={styles.businessName}>{business?.name} - Servis</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.waiterBadge}>
-              <Text style={styles.waiterBadgeText}>👨‍💼 GARSON</Text>
-            </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>⏻</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Header - Kaydırıldıkça kaybolacak */}
+        <Header
+          user={user}
+          business={business}
+          currentRole={currentRole}
+          onLogout={handleLogout}
+          badgeText={getRoleConfig(currentRole)?.badgeText}
+          badgeColor={getRoleConfig(currentRole)?.color}
+          sticky={false}  // Header kaydırıldıkça kaybolacak
+        />
 
         {/* Hızlı Rol Değiştirme */}
-        {getAvailableRoles().length > 0 && (
+        {availableRoles.length > 0 && (
           <View style={styles.roleSwitchSection}>
             <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
             <View style={styles.roleSwitchButtons}>
-              {getAvailableRoles().map((role) => (
+              {availableRoles.map((role) => (
                 <TouchableOpacity
                   key={role.id}
                   style={[
@@ -222,22 +222,26 @@ const WaiterDashboard = () => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Servis Durumu</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{occupiedTables.length}</Text>
-              <Text style={styles.statLabel}>Dolu Masa</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{readyOrders.length}</Text>
-              <Text style={styles.statLabel}>Hazır Sipariş</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{emptyTables.length}</Text>
-              <Text style={styles.statLabel}>Boş Masa</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{tables.length}</Text>
-              <Text style={styles.statLabel}>Toplam Masa</Text>
-            </View>
+            <DailySummaryCard 
+              number={occupiedTables.length} 
+              label="Dolu Masa" 
+              color="#dc2626"
+            />
+            <DailySummaryCard 
+              number={readyOrders.length} 
+              label="Hazır Sipariş" 
+              color="#10b981"
+            />
+            <DailySummaryCard 
+              number={emptyTables.length} 
+              label="Boş Masa" 
+              color="#6b7280"
+            />
+            <DailySummaryCard 
+              number={tables.length} 
+              label="Toplam Masa" 
+              color="#3b82f6"
+            />
           </View>
         </View>
 
@@ -320,27 +324,31 @@ const WaiterDashboard = () => {
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: '#7c3aed' }]}>
-                <Text style={styles.actionIconText}>📊</Text>
-              </View>
-              <Text style={styles.actionTitle}>Servis Raporu</Text>
-              <Text style={styles.actionDescription}>Günlük servis durumu</Text>
-            </TouchableOpacity>
+            <FastActionCard
+              title="Servis Raporu"
+              description="Günlük servis durumu"
+              icon="📊"
+              color="#7c3aed"
+              onPress={() => console.log('Servis raporu tıklandı')}
+            />
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   scrollView: {
     flex: 1,
+    marginTop: 0,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
   },
   header: {
     flexDirection: 'row',

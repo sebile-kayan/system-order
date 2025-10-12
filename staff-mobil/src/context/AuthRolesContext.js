@@ -1,11 +1,59 @@
 /**
- * AUTH CONTEXT - Kimlik Doğrulama Yönetimi
+ * AUTH ROLES CONTEXT - Kimlik Doğrulama ve Rol Yönetimi
  * 
- * Bu context kullanıcı giriş/çıkış işlemlerini, oturum yönetimini ve rol tabanlı erişim kontrolünü yönetir.
- * AsyncStorage ile oturum bilgilerini kalıcı hale getirir ve tüm uygulama boyunca kullanıcı durumunu takip eder.
+ * Kullanıcı giriş/çıkış işlemlerini, oturum yönetimini ve rol tabanlı erişim kontrolünü yönetir.
+ * Rol tanımları, icon'lar, renkler ve yardımcı fonksiyonları içerir.
+ * AsyncStorage ile oturum bilgilerini kalıcı hale getirir.
  */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Rol tanımları ve yapılandırması
+export const ROLE_BUTTONS = [
+  { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
+  { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
+  { id: 'waiter', name: 'Garson', icon: '🍽️', color: '#10b981' },
+  { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
+];
+
+export const ROLE_CONFIG = {
+  admin: {
+    name: 'Yönetici',
+    icon: '👑',
+    color: '#dc2626',
+    badgeText: '👑 YÖNETİCİ',
+    dashboard: 'AdminDashboard',
+  },
+  chef: {
+    name: 'Şef',
+    icon: '👨‍🍳',
+    color: '#ea580c',
+    badgeText: '👨‍🍳 ŞEF',
+    dashboard: 'ChefDashboard',
+  },
+  waiter: {
+    name: 'Garson',
+    icon: '🍽️',
+    color: '#10b981',
+    badgeText: '🍽️ GARSON',
+    dashboard: 'WaiterDashboard',
+  },
+  cashier: {
+    name: 'Kasiyer',
+    icon: '💰',
+    color: '#7c3aed',
+    badgeText: '💰 KASİYER',
+    dashboard: 'CashierDashboard',
+  },
+};
+
+export const getRoleConfig = (roleId) => {
+  return ROLE_CONFIG[roleId] || ROLE_CONFIG.admin;
+};
+
+export const getAvailableRoles = (userRoles, roleButtons = ROLE_BUTTONS) => {
+  return roleButtons.filter(role => userRoles.includes(role.id));
+};
 
 const AuthContext = createContext();
 
@@ -45,10 +93,17 @@ export const AuthProvider = ({ children }) => {
       const storedRole = await AsyncStorage.getItem('currentRole');
 
       if (storedUser && storedBusiness && storedToken) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
         setBusiness(JSON.parse(storedBusiness));
         setToken(storedToken);
-        setCurrentRole(storedRole);
+        
+        // Eğer kullanıcının tek rolü varsa otomatik seç, birden fazla varsa stored role'e bak
+        if (parsedUser.roles.length === 1) {
+          setCurrentRole(parsedUser.roles[0]);
+        } else {
+          setCurrentRole(storedRole); // Daha önce seçilmiş rol varsa onu kullan
+        }
       }
     } catch (error) {
       console.error('❌ Oturum yükleme hatası:', error);
@@ -128,7 +183,7 @@ export const AuthProvider = ({ children }) => {
           id: 7,
           business_id: 1,
           username: 'all_roles',
-          full_name: 'Mustafa Tüm Roller',
+          full_name: 'Tüm Roller',
           phone: '+90 555 789 0123',
           is_active: true,
           roles: ['admin', 'chef', 'waiter', 'cashier'], // Tüm roller
@@ -161,17 +216,24 @@ export const AuthProvider = ({ children }) => {
       setBusiness(mockResponse.business);
       setToken(mockResponse.token);
       
-      // İlk rolü seç (admin varsa admin, yoksa ilk rol)
-      const firstRole = mockResponse.user.roles.includes('admin') 
-        ? 'admin' 
-        : mockResponse.user.roles[0];
-      setCurrentRole(firstRole);
+      // Eğer kullanıcının tek rolü varsa otomatik seç, birden fazla varsa null bırak
+      if (mockResponse.user.roles.length === 1) {
+        setCurrentRole(mockResponse.user.roles[0]);
+      } else {
+        setCurrentRole(null); // RoleSelectorScreen'e yönlendir
+      }
 
       // AsyncStorage'a kaydet
       await AsyncStorage.setItem('user', JSON.stringify(mockResponse.user));
       await AsyncStorage.setItem('business', JSON.stringify(mockResponse.business));
       await AsyncStorage.setItem('token', mockResponse.token);
-      await AsyncStorage.setItem('currentRole', firstRole);
+      
+      // currentRole'ü AsyncStorage'a kaydet
+      if (mockResponse.user.roles.length === 1) {
+        await AsyncStorage.setItem('currentRole', mockResponse.user.roles[0]);
+      } else {
+        await AsyncStorage.removeItem('currentRole'); // Çoklu rol varsa temizle
+      }
 
       return true;
     } catch (error) {
@@ -182,7 +244,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // State'i temizle
       setUser(null);
@@ -195,22 +257,22 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Çıkış hatası:', error);
     }
-  };
+  }, []);
 
-  const switchRole = (role) => {
+  const switchRole = useCallback((role) => {
     if (user?.roles.includes(role)) {
       setCurrentRole(role);
       AsyncStorage.setItem('currentRole', role);
     }
-  };
+  }, [user?.roles]);
 
-  const hasRole = (role) => {
+  const hasRole = useCallback((role) => {
     return user?.roles.includes(role) || false;
-  };
+  }, [user?.roles]);
 
-  const hasAnyRole = (roles) => {
+  const hasAnyRole = useCallback((roles) => {
     return roles.some(role => user?.roles.includes(role)) || false;
-  };
+  }, [user?.roles]);
 
   const value = {
     user,

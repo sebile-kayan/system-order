@@ -11,13 +11,12 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   Alert,
   TextInput,
   Modal,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthRolesContext';
 
 const MenuScreen = () => {
   const { user, hasRole } = useAuth();
@@ -98,15 +97,17 @@ const MenuScreen = () => {
   // Admin kontrolü
   if (!hasRole('admin')) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.accessDenied}>
-          <Text style={styles.accessDeniedIcon}>🔒</Text>
-          <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
-          <Text style={styles.accessDeniedText}>
-            Bu sayfaya erişim için admin yetkisi gereklidir.
-          </Text>
+      <View style={styles.container}>
+        <View style={styles.safeArea}>
+          <View style={[styles.accessDenied, { paddingTop: 50 }]}>
+            <Text style={styles.accessDeniedIcon}>🔒</Text>
+            <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
+            <Text style={styles.accessDeniedText}>
+              Bu sayfaya erişim için admin yetkisi gereklidir.
+            </Text>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -189,10 +190,12 @@ const MenuScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Menü Yönetimi</Text>
-        <Text style={styles.headerSubtitle}>Ürün ve kategori yönetimi</Text>
+    <View style={styles.container}>
+      <View style={styles.safeArea}>
+        <View style={[styles.header, { paddingTop: 50 }]}>
+          <Text style={styles.headerTitle}>Menü Yönetimi</Text>
+          <Text style={styles.headerSubtitle}>Ürün ve kategori yönetimi</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -355,14 +358,17 @@ const MenuScreen = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    backgroundColor: '#f8fafc',
   },
   accessDenied: {
     flex: 1,
