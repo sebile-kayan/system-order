@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = ({ navigation }) => {
-  const { user, business, hasRole, switchRole, logout, currentRole } = useAuth();
+  const { user, business, logout } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     todayOrders: 45,
@@ -66,15 +66,6 @@ const AdminDashboard = ({ navigation }) => {
     },
   ];
 
-  const roleButtons = [
-    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
-    { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: '#059669' },
-    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
-  ];
-
-  const getAvailableRoles = () => {
-    return roleButtons.filter(role => hasRole(role.id));
-  };
 
   const handleLogout = () => {
     // Direkt logout çağır
@@ -105,28 +96,6 @@ const AdminDashboard = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Hızlı Rol Değiştirme */}
-        {getAvailableRoles().length > 0 && (
-          <View style={styles.roleSwitchSection}>
-            <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
-            <View style={styles.roleSwitchButtons}>
-              {getAvailableRoles().map((role) => (
-                <TouchableOpacity
-                  key={role.id}
-                  style={[
-                    styles.roleSwitchButton,
-                    { backgroundColor: role.color },
-                    currentRole === role.id && styles.activeRoleButton
-                  ]}
-                  onPress={() => switchRole(role.id)}
-                >
-                  <Text style={styles.roleSwitchIcon}>{role.icon}</Text>
-                  <Text style={styles.roleSwitchText}>{role.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
 
 
         {/* Günlük İstatistikler */}
