@@ -160,8 +160,8 @@ export const TableProvider = ({ children }) => {
   // Oturumu sonlandır
   const endSession = () => {
     localStorage.removeItem('tableSession');
-    localStorage.removeItem('hasOrdered'); // Sipariş durumunu da sıfırla
-    localStorage.removeItem('orderTotal'); // Sipariş tutarını da sıfırla
+    // NOT: Sepet verilerini (hasOrdered, orderTotal) silmiyoruz
+    // Çünkü müşteri ödeme yapana kadar sepet korunmalı
     dispatch({ type: 'CLEAR_SESSION' });
     // URL'deki QR parametresini temizle
     const newUrl = window.location.origin + window.location.pathname;

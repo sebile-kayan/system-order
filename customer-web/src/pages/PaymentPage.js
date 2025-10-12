@@ -35,30 +35,19 @@ import { useTable } from '../context/TableContext';
 import { useNavigate } from 'react-router-dom';
 
 const PaymentPage = () => {
-  const { calculateTotal, cart, hasOrdered, orderTotal, markAsPaid } = useCart();
+  const { calculateTotal, cart, hasOrdered, orderTotal, isPaid, markAsPaid } = useCart();
   const { tableInfo } = useTable();
   const navigate = useNavigate();
   
-  // Ödeme sayfasında sadece sipariş verilen tutarı göster
+  // Ödeme sayfasında sadece sipariş verilen tutar görünür
+  // Sepetteki yeni ürünler (sipariş verilmemiş) dahil edilmez
   const currentCartTotal = calculateTotal();
   let total = 0;
   
-  if (hasOrdered) {
-    total = orderTotal; // Sadece sipariş verilen tutar (sepetteki ürünler dahil değil)
-    console.log('PAYMENT PAGE DEBUG:', { 
-      hasOrdered, 
-      orderTotal, 
-      currentCartTotal, 
-      total,
-      cartLength: cart.length 
-    });
+  if (hasOrdered && !isPaid) {
+    total = orderTotal; // Sadece sipariş verilen tutar (yeni sepet tutarı dahil değil)
   } else {
-    total = currentCartTotal; // Sadece sepet tutarı
-    console.log('PAYMENT PAGE DEBUG (No Order):', { 
-      currentCartTotal, 
-      total,
-      cartLength: cart.length 
-    });
+    total = currentCartTotal; // Normal sepet tutarı (hiç sipariş verilmemişse)
   }
   
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);

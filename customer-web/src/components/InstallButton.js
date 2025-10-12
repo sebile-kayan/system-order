@@ -11,18 +11,10 @@ const InstallButton = () => {
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const [isInstalling, setIsInstalling] = useState(false);
 
-  // Debug için console log
-  React.useEffect(() => {
-    console.log('Install Button Debug:', { isInstallable, isInstalled });
-  }, [isInstallable, isInstalled]);
-
   const handleInstall = async () => {
     setIsInstalling(true);
     try {
-      const success = await installApp();
-      if (success) {
-        console.log('App installed successfully');
-      }
+      await installApp();
     } catch (error) {
       console.error('Error installing app:', error);
     } finally {

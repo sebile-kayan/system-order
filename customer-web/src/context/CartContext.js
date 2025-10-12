@@ -84,8 +84,21 @@ export const CartProvider = ({ children }) => {
     return stored === 'true';
   });
 
+  // isPaid değişikliklerini localStorage ile senkronize et
+  React.useEffect(() => {
+    localStorage.setItem('isPaid', isPaid.toString());
+  }, [isPaid]);
+
   const addToCart = (item) => {
     dispatch({ type: 'ADD_TO_CART', payload: item });
+    
+    // Eğer ödeme yapıldıysa (isPaid: true) ve yeni ürün ekleniyorsa
+    // Bu yeni bir sipariş başlangıcıdır, isPaid'i false yap
+    const storedIsPaid = localStorage.getItem('isPaid') === 'true';
+    if (isPaid || storedIsPaid) {
+      setIsPaid(false);
+      localStorage.setItem('isPaid', 'false');
+    }
   };
 
   const removeFromCart = (itemId) => {
@@ -103,6 +116,7 @@ export const CartProvider = ({ children }) => {
   const placeOrder = () => {
     const currentTotal = calculateTotal();
     const newOrderTotal = hasOrdered ? orderTotal + currentTotal : currentTotal;
+    
     setHasOrdered(true);
     setOrderTotal(newOrderTotal);
     setIsPaid(false);
