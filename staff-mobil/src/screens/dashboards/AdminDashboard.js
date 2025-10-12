@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = ({ navigation }) => {
-  const { user, business, logout } = useAuth();
+  const { user, business, hasRole, switchRole, logout, currentRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     todayOrders: 45,
@@ -33,6 +33,17 @@ const AdminDashboard = ({ navigation }) => {
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
+  };
+
+  // Rol değiştirme butonları
+  const roleButtons = [
+    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
+    { id: 'waiter', name: 'Garson', icon: '🍽️', color: '#10b981' },
+    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
+  ];
+
+  const getAvailableRoles = () => {
+    return roleButtons.filter(role => hasRole(role.id));
   };
 
   const quickActions = [
@@ -96,7 +107,28 @@ const AdminDashboard = ({ navigation }) => {
           </View>
         </View>
 
-
+        {/* Hızlı Rol Değiştirme */}
+        {getAvailableRoles().length > 0 && (
+          <View style={styles.roleSwitchSection}>
+            <Text style={styles.roleSwitchTitle}>Hızlı Rol Değiştirme</Text>
+            <View style={styles.roleSwitchButtons}>
+              {getAvailableRoles().map((role) => (
+                <TouchableOpacity
+                  key={role.id}
+                  style={[
+                    styles.roleSwitchButton,
+                    { backgroundColor: role.color },
+                    currentRole === role.id && styles.activeRoleButton
+                  ]}
+                  onPress={() => switchRole(role.id)}
+                >
+                  <Text style={styles.roleSwitchIcon}>{role.icon}</Text>
+                  <Text style={styles.roleSwitchText}>{role.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Günlük İstatistikler */}
         <View style={styles.statsSection}>
@@ -301,6 +333,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 16,
+  },
+  roleSwitchSection: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  roleSwitchTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  roleSwitchButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  roleSwitchButton: {
+    flex: 1,
+    marginHorizontal: 4,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    opacity: 0.8,
+  },
+  activeRoleButton: {
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+    elevation: 4,
+  },
+  roleSwitchIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  roleSwitchText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
   },
   statsSection: {
     padding: 20,
