@@ -1,10 +1,9 @@
 /**
  * SETTINGS SCREEN - Ayarlar Ekranı
  * 
- * Bu ekran tüm kullanıcılar için ortak ayarlar sayfasıdır. Profil yönetimi, bildirim ayarları,
- * çıkış işlemi ve rol değiştirme seçenekleri içerir. Admin kullanıcılar için ek işletme ayarları bulunur.
+ * Kullanıcı profil yönetimi, bildirim ayarları, rol değiştirme ve çıkış işlemleri.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,17 +12,42 @@ import {
   StyleSheet,
   Alert,
   Switch,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
 
 const SettingsScreen = () => {
-  const { user, business, hasRole, switchRole, logout } = useAuth();
+  const { user, business, hasRole, switchRole, logout, updateProfile, currentRole } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Profil düzenleme modalı
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileData, setProfileData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
+
+  // Kullanıcı bilgileri değiştiğinde form verilerini güncelle
+  useEffect(() => {
+    // Sadece user ve currentRole varsa çalış
+    if (!user || !currentRole || !user.id) {
+      return;
+    }
+    
+    setProfileData({
+      fullName: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+    });
+  }, [user?.id, currentRole]);
 
   const handleLogout = () => {
-    // Direkt logout çağır
     logout();
   };
 
@@ -44,7 +68,7 @@ const SettingsScreen = () => {
   const handleContactSupport = () => {
     Alert.alert(
       'Destek',
-      'Destek ekibiyle iletişime geçmek için:\n\n📧 Email: destek@restoran.com\n📞 Telefon: +90 212 555 0123',
+      'Destek: destek@restoran.com\nTelefon: +90 212 555 0123',
       [{ text: 'Tamam' }]
     );
   };
@@ -52,9 +76,54 @@ const SettingsScreen = () => {
   const handleAbout = () => {
     Alert.alert(
       'Uygulama Hakkında',
-      `Restoran Yönetim Sistemi\n\nVersiyon: 1.0.0\nGeliştirici: Restoran Teknoloji\n\n© 2024 Tüm hakları saklıdır.`,
+      'Restoran Yönetim Sistemi v1.0.0\n© 2025 Tüm hakları saklıdır.',
       [{ text: 'Tamam' }]
     );
+  };
+
+  // Profil düzenleme fonksiyonları
+  const handleEditProfile = () => {
+    setShowProfileModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileData.fullName.trim()) {
+      Alert.alert('Hata', 'Ad Soyad alanı boş olamaz.');
+      return;
+    }
+
+    if (!profileData.phone.trim()) {
+      Alert.alert('Hata', 'Telefon numarası alanı boş olamaz.');
+      return;
+    }
+
+    try {
+      const success = await updateProfile(profileData);
+      
+      if (success) {
+        Alert.alert(
+          'Profil Güncellendi',
+          'Profil bilgileriniz başarıyla güncellendi.',
+          [{ text: 'Tamam', onPress: () => setShowProfileModal(false) }]
+        );
+      } else {
+        Alert.alert('Hata', 'Profil güncellenirken bir hata oluştu.');
+      }
+    } catch (error) {
+      Alert.alert('Hata', 'Profil güncellenirken bir hata oluştu.');
+    }
+  };
+
+  const handleCancelProfile = () => {
+    setShowProfileModal(false);
+    // Form verilerini mevcut kullanıcı bilgileriyle sıfırla
+    if (user) {
+      setProfileData({
+        fullName: user.full_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
   };
 
   const getAvailableRoles = () => {
@@ -79,7 +148,7 @@ const SettingsScreen = () => {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profil Bilgileri */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profil Bilgileri</Text>
@@ -89,7 +158,7 @@ const SettingsScreen = () => {
               <Text style={styles.profileBusiness}>{business?.name}</Text>
               <Text style={styles.profileUsername}>@{user?.username}</Text>
             </View>
-            <TouchableOpacity style={styles.editProfileButton}>
+            <TouchableOpacity style={styles.editProfileButton} onPress={handleEditProfile}>
               <Text style={styles.editProfileButtonText}>Düzenle</Text>
             </TouchableOpacity>
           </View>
@@ -212,6 +281,88 @@ const SettingsScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Profil Düzenleme Modalı */}
+      <Modal
+        visible={showProfileModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCancelProfile}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContainer}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView 
+              style={styles.modalContent}
+              contentContainerStyle={styles.modalContentContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.modalTitle}>Profil Düzenle</Text>
+              
+              <View style={styles.formContainer}>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Ad Soyad *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={profileData.fullName}
+                    onChangeText={(text) => setProfileData(prev => ({ ...prev, fullName: text }))}
+                    placeholder="Ad soyadınızı giriniz"
+                    placeholderTextColor="#9ca3af"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>E-posta</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={profileData.email}
+                    onChangeText={(text) => setProfileData(prev => ({ ...prev, email: text }))}
+                    placeholder="E-posta adresinizi giriniz"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Telefon *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={profileData.phone}
+                    onChangeText={(text) => setProfileData(prev => ({ ...prev, phone: text }))}
+                    placeholder="Telefon numaranızı giriniz"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Kullanıcı Adı</Text>
+                  <TextInput
+                    style={[styles.formInput, styles.disabledInput]}
+                    value={user?.username || ''}
+                    editable={false}
+                    placeholderTextColor="#9ca3af"
+                  />
+                  <Text style={styles.formHelpText}>Kullanıcı adı değiştirilemez</Text>
+                </View>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelProfile}>
+                  <Text style={styles.cancelButtonText}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+                  <Text style={styles.saveButtonText}>Kaydet</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -242,6 +393,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   section: {
     backgroundColor: '#ffffff',
@@ -383,6 +537,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Modal Stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxHeight: '85%',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    maxHeight: '100%',
+  },
+  modalContentContainer: {
+    padding: 20,
+    paddingBottom: 30,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  formContainer: {
+    flex: 1,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    backgroundColor: '#ffffff',
+  },
+  disabledInput: {
+    backgroundColor: '#f9fafb',
+    color: '#6b7280',
+  },
+  formHelpText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',

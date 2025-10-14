@@ -115,6 +115,7 @@ const TableManagementScreen = ({ navigation }) => {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -290,6 +291,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   accessDenied: {
     flex: 1,

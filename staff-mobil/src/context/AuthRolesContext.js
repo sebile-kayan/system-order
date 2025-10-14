@@ -85,6 +85,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
   const loadStoredAuth = async () => {
     try {
       const storedUser = await AsyncStorage.getItem('user');
@@ -124,7 +125,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'admin',
           full_name: 'Ahmet Yönetici',
-          phone: '+90 555 123 4567',
+          email: 'admin@restaurant.com',
+          phone: '0555 123 4567',
           is_active: true,
           roles: ['admin'], // Sadece admin rolü
           created_at: new Date().toISOString(),
@@ -134,7 +136,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'chef',
           full_name: 'Mehmet Şef',
-          phone: '+90 555 234 5678',
+          email: 'chef@restaurant.com',
+          phone: '0555 234 5678',
           is_active: true,
           roles: ['chef'], // Sadece şef rolü
           created_at: new Date().toISOString(),
@@ -144,7 +147,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'waiter',
           full_name: 'Ayşe Garson',
-          phone: '+90 555 345 6789',
+          email: 'waiter@restaurant.com',
+          phone: '0555 345 6789',
           is_active: true,
           roles: ['waiter'], // Sadece garson rolü
           created_at: new Date().toISOString(),
@@ -154,7 +158,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'cashier',
           full_name: 'Fatma Kasiyer',
-          phone: '+90 555 456 7890',
+          email: 'cashier@restaurant.com',
+          phone: '0555 456 7890',
           is_active: true,
           roles: ['cashier'], // Sadece kasiyer rolü
           created_at: new Date().toISOString(),
@@ -164,7 +169,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'chef_waiter',
           full_name: 'Ali Şef-Garson',
-          phone: '+90 555 567 8901',
+          email: 'chef_waiter@restaurant.com',
+          phone: '0555 567 8901',
           is_active: true,
           roles: ['chef', 'waiter'], // Şef ve garson rolleri
           created_at: new Date().toISOString(),
@@ -174,7 +180,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'waiter_cashier',
           full_name: 'Zeynep Garson-Kasiyer',
-          phone: '+90 555 678 9012',
+          email: 'waiter_cashier@restaurant.com',
+          phone: '0555 678 9012',
           is_active: true,
           roles: ['waiter', 'cashier'], // Garson ve kasiyer rolleri
           created_at: new Date().toISOString(),
@@ -184,7 +191,8 @@ export const AuthProvider = ({ children }) => {
           business_id: 1,
           username: 'all_roles',
           full_name: 'Tüm Roller',
-          phone: '+90 555 789 0123',
+          email: 'all_roles@restaurant.com',
+          phone: '0555 789 0123',
           is_active: true,
           roles: ['admin', 'chef', 'waiter', 'cashier'], // Tüm roller
           created_at: new Date().toISOString(),
@@ -274,6 +282,32 @@ export const AuthProvider = ({ children }) => {
     return roles.some(role => user?.roles.includes(role)) || false;
   }, [user?.roles]);
 
+  // Profil güncelleme fonksiyonu
+  const updateProfile = useCallback(async (profileData) => {
+    try {
+      if (!user) return false;
+
+      // Kullanıcı bilgilerini güncelle
+      const updatedUser = {
+        ...user,
+        full_name: profileData.fullName,
+        email: profileData.email,
+        phone: profileData.phone,
+      };
+
+      // State'i güncelle
+      setUser(updatedUser);
+
+      // AsyncStorage'a kaydet
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+
+      return true;
+    } catch (error) {
+      console.error('Profil güncelleme hatası:', error);
+      return false;
+    }
+  }, [user]);
+
   const value = {
     user,
     business,
@@ -286,6 +320,9 @@ export const AuthProvider = ({ children }) => {
     switchRole,
     hasRole,
     hasAnyRole,
+    getAvailableRoles,
+    clearAllStorage,
+    updateProfile,
   };
 
   return (

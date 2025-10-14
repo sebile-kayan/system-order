@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   scrollContent: {
-    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
+    paddingBottom: 120, // Bottom navigation için maksimum boşluk
   },
   roleSwitchSection: {
     padding: 16,

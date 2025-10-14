@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   },
   menuSection: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   menuCard: {
     backgroundColor: '#ffffff',

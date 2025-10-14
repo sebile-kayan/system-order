@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   scrollContent: {
-    paddingBottom: 120, // Bottom navigation için boşluk artırıldı
+    paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   header: {
     flexDirection: 'row',

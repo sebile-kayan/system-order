@@ -214,25 +214,38 @@ const MainTabNavigator = () => {
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopColor: '#e5e7eb',
-          height: 70 + insets.bottom, // Height daha da artırıldı
-          paddingBottom: insets.bottom + 12, // Safe area padding + daha fazla ekstra
-          paddingTop: 12, // Top padding daha da artırıldı
+          borderTopWidth: 1,
+          height: 70 + Math.max(insets.bottom, 10), // Makul yükseklik + minimum 10px
+          paddingBottom: Math.max(insets.bottom, 10) + 8, // Makul padding
+          paddingTop: 8,
           paddingHorizontal: 10,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-around',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8, // Makul gölge
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',
-          marginTop: 1, // Margin azaltıldı
-          marginBottom: 2, // Alt margin eklendi
+          marginTop: 2,
+          marginBottom: 4,
           textAlign: 'center',
           lineHeight: 12,
         },
         tabBarIconStyle: {
-          marginTop: 2, // Icon'u yukarı taşı
-          marginBottom: 2, // Alt margin eklendi
+          marginTop: 4,
+          marginBottom: 4,
         },
         tabBarActiveTintColor: '#1e3a8a',
         tabBarInactiveTintColor: '#9ca3af',
