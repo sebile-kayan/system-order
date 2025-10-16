@@ -10,6 +10,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
 import { Colors } from '../constants/Colors';
@@ -58,7 +59,7 @@ const RoleSelectorScreen = ({ navigation }) => {
   };
 
   const getAvailableRoles = () => {
-    return roles.filter(role => hasRole(role.id));
+    return roles.filter(role => user?.roles?.includes(role.id) || false);
   };
 
   const availableRoles = getAvailableRoles();
@@ -81,9 +82,7 @@ const RoleSelectorScreen = ({ navigation }) => {
               currentRole === role.id && styles.selectedCard
             ]}
           >
-            <Button
-              title=""
-              variant="ghost"
+            <TouchableOpacity
               onPress={() => handleRoleSelect(role.id)}
               style={styles.roleButton}
             >
@@ -99,7 +98,7 @@ const RoleSelectorScreen = ({ navigation }) => {
                   </View>
                 )}
               </View>
-            </Button>
+            </TouchableOpacity>
           </Card>
         ))}
       </ScrollView>
