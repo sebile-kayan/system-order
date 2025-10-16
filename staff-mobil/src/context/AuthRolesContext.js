@@ -1,4 +1,4 @@
-/**
+/**   CONTEXT KLASÖRÜNÜN AMACI: Veri Yönetimi ve state yönetimi. Birden fazla bileşende kullanılan veriler.Global veri tutar, sağlar
  * AUTH ROLES CONTEXT - Kimlik Doğrulama ve Rol Yönetimi
  * 
  * Kullanıcı giriş/çıkış işlemlerini, oturum yönetimini ve rol tabanlı erişim kontrolünü yönetir.
@@ -7,41 +7,42 @@
  */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../constants/Colors';
 
 // Rol tanımları ve yapılandırması
 export const ROLE_BUTTONS = [
-  { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
-  { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
-  { id: 'waiter', name: 'Garson', icon: '🍽️', color: '#10b981' },
-  { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
+  { id: 'admin', name: 'Yönetici', icon: '👑', color: Colors.error },
+  { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: Colors.warning },
+  { id: 'waiter', name: 'Garson', icon: '🍽️', color: Colors.success },
+  { id: 'cashier', name: 'Kasiyer', icon: '💰', color: Colors.secondary },
 ];
 
 export const ROLE_CONFIG = {
   admin: {
     name: 'Yönetici',
     icon: '👑',
-    color: '#dc2626',
+    color: Colors.error,
     badgeText: '👑 YÖNETİCİ',
     dashboard: 'AdminDashboard',
   },
   chef: {
     name: 'Şef',
     icon: '👨‍🍳',
-    color: '#ea580c',
+    color: Colors.warning,
     badgeText: '👨‍🍳 ŞEF',
     dashboard: 'ChefDashboard',
   },
   waiter: {
     name: 'Garson',
     icon: '🍽️',
-    color: '#10b981',
+    color: Colors.success,
     badgeText: '🍽️ GARSON',
     dashboard: 'WaiterDashboard',
   },
   cashier: {
     name: 'Kasiyer',
     icon: '💰',
-    color: '#7c3aed',
+    color: Colors.secondary,
     badgeText: '💰 KASİYER',
     dashboard: 'CashierDashboard',
   },

@@ -15,6 +15,8 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import { Colors } from '../../constants/Colors';
+import { Typography } from '../../constants/Typography';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
 import FastActionCard from '../../components/FastActionCard';
@@ -79,10 +81,10 @@ const ChefDashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'preparing': return '#3b82f6';
-      case 'ready': return '#10b981';
-      default: return '#6b7280';
+      case 'pending': return Colors.warning;
+      case 'preparing': return Colors.info;
+      case 'ready': return Colors.success;
+      default: return Colors.gray500;
     }
   };
 
@@ -111,9 +113,9 @@ const ChefDashboard = () => {
   };
 
   const roleButtons = [
-    { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
-    { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: '#059669' },
-    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
+    { id: 'admin', name: 'Yönetici', icon: '👑', color: Colors.error },
+    { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: Colors.success },
+    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: Colors.secondary },
   ];
 
   const availableRoles = useMemo(() => {
@@ -177,22 +179,22 @@ const ChefDashboard = () => {
             <DailySummaryCard 
               number={orders.filter(o => o.status === 'preparing').length} 
               label="Hazırlanıyor" 
-              color="#ea580c"
+              color={Colors.warning}
             />
             <DailySummaryCard 
               number={orders.filter(o => o.status === 'ready').length} 
               label="Hazır" 
-              color="#10b981"
+              color={Colors.success}
             />
             <DailySummaryCard 
               number={orders.filter(o => o.status === 'pending').length} 
               label="Bekliyor" 
-              color="#f59e0b"
+              color={Colors.warning}
             />
             <DailySummaryCard 
               number={orders.length} 
               label="Toplam" 
-              color="#6b7280"
+              color={Colors.gray500}
             />
           </View>
         </View>
@@ -255,15 +257,15 @@ const ChefDashboard = () => {
               title="Zaman Takibi"
               description="Hazırlama sürelerini ayarla"
               icon="⏰"
-              color="#ea580c"
-              onPress={() => console.log('Zaman takibi tıklandı')}
+              color={Colors.warning}
+              onPress={() => {}}
             />
             <FastActionCard
               title="Stok Durumu"
               description="Mutfak envanteri"
               icon="📊"
-              color="#7c3aed"
-              onPress={() => console.log('Stok durumu tıklandı')}
+              color={Colors.secondary}
+              onPress={() => {}}
             />
           </View>
         </View>
@@ -275,7 +277,7 @@ const ChefDashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
@@ -286,15 +288,15 @@ const styles = StyleSheet.create({
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -321,19 +323,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 16,
   },
   statsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   statsGrid: {
@@ -343,16 +345,16 @@ const styles = StyleSheet.create({
   },
   ordersSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   orderCard: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -363,11 +365,11 @@ const styles = StyleSheet.create({
   tableNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
   },
   orderTime: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -376,7 +378,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -389,7 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   itemInfo: {
     flex: 1,
@@ -397,11 +399,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1f2937',
+    color: Colors.textPrimary,
   },
   itemQuantity: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   itemActions: {
@@ -416,22 +418,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButtonPending: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: Colors.warning,
   },
   actionButtonPreparing: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.info,
   },
   actionButtonReady: {
-    backgroundColor: '#10b981',
+    backgroundColor: Colors.success,
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
   actionsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     marginBottom: 20,
   },

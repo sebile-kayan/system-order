@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../constants/Colors';
 
 const Header = ({ 
   user, 
@@ -14,7 +15,7 @@ const Header = ({
   currentRole, 
   onLogout, 
   badgeText = null, 
-  badgeColor = '#dc2626',
+  badgeColor = Colors.error,
   sticky = false  // Yeni prop: sticky header için
 }) => {
   const insets = useSafeAreaInsets();
@@ -54,7 +55,7 @@ const Header = ({
           </View>
         )}
         <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-          <Text style={styles.logoutButtonText}>⏻</Text>
+          <Text style={styles.logoutButtonText}>Çıkış</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -63,65 +64,79 @@ const Header = ({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 60,
+    alignItems: 'flex-start',
+    height: 150,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    // Web için boxShadow kullan, mobile için elevation
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    borderBottomColor: Colors.border,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 4,
   },
   headerContent: {
     flex: 1,
+    paddingTop: 8,
   },
   welcomeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   businessName: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 1,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+    fontWeight: '500',
   },
   currentRoleText: {
-    fontSize: 11,
-    color: '#9ca3af',
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: Colors.textTertiary,
+    fontWeight: '500',
+    backgroundColor: Colors.gray50,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   headerRight: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingTop: 30,
+    gap: 12,
   },
   roleBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
   },
   roleBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    backgroundColor: Colors.gray50,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 32,
   },
   logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 13,
+    color: Colors.error,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
 

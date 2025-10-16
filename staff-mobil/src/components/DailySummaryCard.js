@@ -6,8 +6,9 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '../constants/Colors';
 
-const DailySummaryCard = ({ number, label, color = '#1e3a8a' }) => {
+const DailySummaryCard = ({ number, label, color = Colors.primary }) => {
   return (
     <View style={styles.statCard}>
       <Text style={[styles.statNumber, { color }]}>{number}</Text>
@@ -19,7 +20,7 @@ const DailySummaryCard = ({ number, label, color = '#1e3a8a' }) => {
 const styles = StyleSheet.create({
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -32,7 +33,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
 });

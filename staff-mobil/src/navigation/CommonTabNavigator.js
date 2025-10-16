@@ -18,7 +18,7 @@ import CashierDashboard from '../screens/dashboards/CashierDashboard';
 
 // Diğer ekranlar
 import OrdersScreen from '../screens/OrdersScreen';
-import MenuScreen from '../screens/MenuScreen';
+import MenuStackNavigator from './MenuStackNavigator';
 import ReportsScreen from '../screens/ReportsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EmployeesScreen from '../screens/EmployeesScreen';
@@ -157,7 +157,7 @@ const MainTabNavigator = () => {
         <Tab.Screen
           key="Menu"
           name="Menu"
-          component={MenuScreen}
+          component={MenuStackNavigator}
           options={{
             title: 'Menü',
             tabBarIcon: ({ color, size }) => (
@@ -227,13 +227,7 @@ const MainTabNavigator = () => {
           left: 0,
           right: 0,
           elevation: 8, // Makul gölge
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
+          boxShadow: '0 -2px 3px rgba(0, 0, 0, 0.1)',
         },
         tabBarLabelStyle: {
           fontSize: 10,

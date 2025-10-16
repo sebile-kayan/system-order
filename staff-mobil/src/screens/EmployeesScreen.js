@@ -9,16 +9,23 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
   Alert,
-  TextInput,
-  Modal,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Input from '../components/Input';
+import Modal from '../components/Modal';
+import useModal from '../hooks/useModal';
+import useForm from '../hooks/useForm';
 
 const EmployeesScreen = ({ navigation }) => {
   const { user, currentRole, hasRole } = useAuth();
@@ -96,10 +103,14 @@ const EmployeesScreen = ({ navigation }) => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [formData, setFormData] = useState({
+  
+  // Modal hooks
+  const editModal = useModal();
+  const addModal = useModal();
+  
+  // Form hooks
+  const employeeForm = useForm({
     name: '',
     role: 'waiter',
     status: 'active',
@@ -107,6 +118,31 @@ const EmployeesScreen = ({ navigation }) => {
     phone: '',
     joinDate: '',
     exitDate: '',
+  }, {
+    name: { required: true, requiredMessage: 'Ad soyad zorunludur' },
+    email: {
+      required: true,
+      requiredMessage: 'E-posta zorunludur',
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      patternMessage: 'Geçerli bir e-posta adresi giriniz'
+    },
+    phone: {
+      required: true,
+      requiredMessage: 'Telefon zorunludur',
+      pattern: /^[0-9\s\-\(\)]+$/,
+      patternMessage: 'Geçerli bir telefon numarası giriniz'
+    },
+    joinDate: {
+      required: true,
+      requiredMessage: 'İşe başlama tarihi zorunludur',
+      pattern: /^\d{2}-\d{2}-\d{4}$/,
+      patternMessage: 'Tarih DD-MM-YYYY formatında olmalıdır (örn: 15-01-2024)'
+    },
+    exitDate: {
+      required: false, // Conditional validation yapacağız
+      pattern: /^\d{2}-\d{2}-\d{4}$/,
+      patternMessage: 'Tarih DD-MM-YYYY formatında olmalıdır (örn: 31-12-2024)'
+    },
   });
 
   const onRefresh = () => {
@@ -125,7 +161,7 @@ const EmployeesScreen = ({ navigation }) => {
   };
 
   const getStatusColor = (status) => {
-    return status === 'active' ? '#10b981' : '#ef4444';
+    return status === 'active' ? Colors.success : Colors.error;
   };
 
   const getStatusText = (status) => {
@@ -148,31 +184,23 @@ const EmployeesScreen = ({ navigation }) => {
   };
 
   const handleAddEmployee = () => {
-    setFormData({
-      name: '',
-      role: 'waiter',
-      status: 'active',
-      email: '',
-      phone: '',
-      joinDate: getTodayFormatted(),
-      exitDate: '',
-    });
+    employeeForm.resetForm();
+    employeeForm.setValue('joinDate', getTodayFormatted());
     setEditingEmployee(null);
-    setShowAddModal(true);
+    addModal.openModal();
   };
 
   const handleEditEmployee = (employee) => {
-    setFormData({
-      name: employee.name,
-      role: employee.role,
-      status: employee.status,
-      email: employee.email,
-      phone: employee.phone,
-      joinDate: employee.joinDate,
-      exitDate: employee.exitDate || '',
-    });
+    // Form değerlerini tek tek set et
+    employeeForm.setValue('name', employee.name);
+    employeeForm.setValue('role', employee.role);
+    employeeForm.setValue('status', employee.status);
+    employeeForm.setValue('email', employee.email);
+    employeeForm.setValue('phone', employee.phone);
+    employeeForm.setValue('joinDate', employee.joinDate);
+    employeeForm.setValue('exitDate', employee.exitDate || '');
     setEditingEmployee(employee);
-    setShowEditModal(true);
+    editModal.openModal();
   };
 
   const handleDeleteEmployee = (employee) => {
@@ -193,37 +221,16 @@ const EmployeesScreen = ({ navigation }) => {
   };
 
   const handleSaveEmployee = () => {
-    // Zorunlu alan kontrolleri
-    if (!formData.name.trim()) {
-      Alert.alert('Hata', 'Çalışan adı gereklidir');
+    const formData = employeeForm.values;
+
+    // Form validasyonu (önce genel validation)
+    if (!employeeForm.validateForm()) {
       return;
     }
 
-    if (!formData.phone.trim()) {
-      Alert.alert('Hata', 'Telefon numarası gereklidir');
-      return;
-    }
-
-    if (!formData.joinDate.trim()) {
-      Alert.alert('Hata', 'İşe başlama tarihi gereklidir');
-      return;
-    }
-
-    // Pasif durumda çıkış tarihi zorunlu
+    // Conditional validation için exitDate'i required yap
     if (formData.status === 'inactive' && !formData.exitDate.trim()) {
-      Alert.alert('Hata', 'Pasif çalışanlar için işten çıkış tarihi gereklidir');
-      return;
-    }
-
-    // Tarih formatı kontrolü (DD-MM-YYYY)
-    const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
-    if (!dateRegex.test(formData.joinDate)) {
-      Alert.alert('Hata', 'İşe başlama tarihi DD-MM-YYYY formatında olmalıdır (örn: 15-01-2024)');
-      return;
-    }
-
-    if (formData.status === 'inactive' && formData.exitDate && !dateRegex.test(formData.exitDate)) {
-      Alert.alert('Hata', 'İşten çıkış tarihi DD-MM-YYYY formatında olmalıdır (örn: 31-12-2024)');
+      employeeForm.setError('exitDate', 'Pasif çalışanlar için işten çıkış tarihi zorunludur');
       return;
     }
 
@@ -250,7 +257,7 @@ const EmployeesScreen = ({ navigation }) => {
           emp.id === editingEmployee.id ? updatedEmployee : emp
         )
       );
-      setShowEditModal(false);
+      editModal.closeModal();
     } else {
       // Yeni ekleme
       const newEmployee = {
@@ -259,34 +266,18 @@ const EmployeesScreen = ({ navigation }) => {
         exitDate: formData.status === 'inactive' ? formData.exitDate : null,
       };
       setEmployees(prev => [...prev, newEmployee]);
-      setShowAddModal(false);
+      addModal.closeModal();
     }
     
     setEditingEmployee(null);
-    setFormData({
-      name: '',
-      role: 'waiter',
-      status: 'active',
-      email: '',
-      phone: '',
-      joinDate: '',
-      exitDate: '',
-    });
+    employeeForm.resetForm();
   };
 
   const handleCancel = () => {
-    setShowEditModal(false);
-    setShowAddModal(false);
+    editModal.closeModal();
+    addModal.closeModal();
     setEditingEmployee(null);
-    setFormData({
-      name: '',
-      role: 'waiter',
-      status: 'active',
-      email: '',
-      phone: '',
-      joinDate: getTodayFormatted(),
-      exitDate: '',
-    });
+    employeeForm.resetForm();
   };
 
   // Filtreleme ve arama
@@ -337,7 +328,6 @@ const EmployeesScreen = ({ navigation }) => {
       >
         {/* İstatistikler */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Genel Durum</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>{employees.filter(e => e.status === 'active').length}</Text>
@@ -367,19 +357,17 @@ const EmployeesScreen = ({ navigation }) => {
         </View>
 
         {/* Arama ve Filtreleme */}
-        <View style={styles.searchSection}>
+        <Card style={styles.searchSection}>
           <Text style={styles.sectionTitle}>Arama ve Filtreleme</Text>
           
           {/* Arama Kutusu */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Çalışan adı ara..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#9ca3af"
-            />
-          </View>
+          <Input
+            label="Çalışan Ara"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Çalışan adı ara..."
+            style={styles.searchInput}
+          />
 
           {/* Filtre Butonları */}
           <ScrollView 
@@ -388,24 +376,17 @@ const EmployeesScreen = ({ navigation }) => {
             style={styles.filtersContainer}
           >
             {statusFilters.map((filter) => (
-              <TouchableOpacity
+              <Button
                 key={filter.key}
-                style={[
-                  styles.filterButton,
-                  statusFilter === filter.key && styles.filterButtonActive
-                ]}
+                title={`${filter.label} (${filter.count})`}
+                variant={statusFilter === filter.key ? 'primary' : 'outline'}
+                size="small"
                 onPress={() => setStatusFilter(filter.key)}
-              >
-                <Text style={[
-                  styles.filterButtonText,
-                  statusFilter === filter.key && styles.filterButtonTextActive
-                ]}>
-                  {filter.label} ({filter.count})
-                </Text>
-              </TouchableOpacity>
+                style={styles.filterButton}
+              />
             ))}
           </ScrollView>
-        </View>
+        </Card>
 
         {/* Çalışan Listesi */}
         <View style={styles.employeesSection}>
@@ -426,7 +407,7 @@ const EmployeesScreen = ({ navigation }) => {
             </View>
           ) : (
             filteredEmployees.map((employee) => (
-              <View key={employee.id} style={styles.employeeCard}>
+              <Card key={employee.id} style={styles.employeeCard}>
                 <View style={styles.employeeHeader}>
                   <View style={styles.employeeInfo}>
                     <Text style={styles.employeeName}>{employee.name}</Text>
@@ -438,20 +419,22 @@ const EmployeesScreen = ({ navigation }) => {
                     </View>
                     <View style={styles.actionButtons}>
                       {employee.id !== 'current-user' && (
-                    <TouchableOpacity 
-                      style={styles.editButton}
-                      onPress={() => handleEditEmployee(employee)}
-                    >
-                      <Text style={styles.editButtonText}>Düzenle</Text>
-                    </TouchableOpacity>
+                        <Button
+                          title="Düzenle"
+                          variant="outline"
+                          size="small"
+                          onPress={() => handleEditEmployee(employee)}
+                          style={styles.editButton}
+                        />
                       )}
                       {employee.id !== 'current-user' && (
-                        <TouchableOpacity 
-                          style={styles.deleteButton}
+                        <Button
+                          title="Sil"
+                          variant="danger"
+                          size="small"
                           onPress={() => handleDeleteEmployee(employee)}
-                        >
-                          <Text style={styles.deleteButtonText}>Sil</Text>
-                        </TouchableOpacity>
+                          style={styles.deleteButton}
+                        />
                       )}
                       {employee.id === 'current-user' && (
                         <View style={styles.currentUserBadge}>
@@ -470,7 +453,7 @@ const EmployeesScreen = ({ navigation }) => {
                     <Text style={styles.detailItem}>🚪 İşten Çıkış: {employee.exitDate}</Text>
                   )}
                 </View>
-              </View>
+              </Card>
             ))
           )}
         </View>
@@ -478,73 +461,51 @@ const EmployeesScreen = ({ navigation }) => {
 
       {/* Düzenleme Modal */}
       <Modal
-        visible={showEditModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleCancel}
+        visible={editModal.isVisible}
+        onClose={editModal.closeModal}
+        title="Çalışan Düzenle"
+        size="large"
+        showCloseButton={false}
+        primaryButtonText="Kaydet"
+        onPrimaryPress={handleSaveEmployee}
+        secondaryButtonText="İptal"
+        onSecondaryPress={handleCancel}
+        scrollable={true}
       >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalContainer}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Çalışan Düzenle</Text>
-              <EmployeeForm 
-                formData={formData}
-                setFormData={setFormData}
-                isEdit={true}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                  <Text style={styles.cancelButtonText}>İptal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveEmployee}>
-                  <Text style={styles.saveButtonText}>Kaydet</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
+        <EmployeeForm 
+          form={employeeForm}
+          onSave={handleSaveEmployee}
+          onCancel={handleCancel}
+          isEdit={true}
+        />
       </Modal>
 
       {/* Yeni Ekleme Modal */}
       <Modal
-        visible={showAddModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleCancel}
+        visible={addModal.isVisible}
+        onClose={addModal.closeModal}
+        title="Yeni Çalışan Ekle"
+        size="large"
+        showCloseButton={false}
+        primaryButtonText="Kaydet"
+        onPrimaryPress={handleSaveEmployee}
+        secondaryButtonText="İptal"
+        onSecondaryPress={handleCancel}
+        scrollable={true}
       >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalContainer}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Yeni Çalışan Ekle</Text>
-              <EmployeeForm 
-                formData={formData}
-                setFormData={setFormData}
-                isEdit={false}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                  <Text style={styles.cancelButtonText}>İptal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveEmployee}>
-                  <Text style={styles.saveButtonText}>Ekle</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
+        <EmployeeForm 
+          form={employeeForm}
+          onSave={handleSaveEmployee}
+          onCancel={handleCancel}
+          isEdit={false}
+        />
       </Modal>
     </View>
   );
 };
 
 // Çalışan Form Bileşeni
-const EmployeeForm = ({ formData, setFormData, isEdit }) => {
+const EmployeeForm = ({ form, onSave, onCancel, isEdit }) => {
   const roles = [
     { key: 'admin', label: 'Yönetici' },
     { key: 'chef', label: 'Şef' },
@@ -559,14 +520,19 @@ const EmployeeForm = ({ formData, setFormData, isEdit }) => {
 
   //YENİ ÇALIŞAN EKLEME FORMU ARAYÜZÜ
   return (
-    <ScrollView style={styles.formContainer}>
+    <ScrollView 
+      style={styles.formScrollView}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.formContainer}>
       <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Ad Soyad *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.name}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+        <Input
+          label="Ad Soyad *"
+          value={form.values.name}
+          onChangeText={(text) => form.setValue('name', text)}
           placeholder="Çalışan adı ve soyadı"
+          error={form.errors.name}
+          onBlur={() => form.validateField('name')}
         />
       </View>
 
@@ -574,21 +540,14 @@ const EmployeeForm = ({ formData, setFormData, isEdit }) => {
         <Text style={styles.formLabel}>Rol</Text>
         <View style={styles.radioGroup}>
           {roles.map((role) => (
-            <TouchableOpacity
+            <Button
               key={role.key}
-              style={[
-                styles.radioButton,
-                formData.role === role.key && styles.radioButtonActive
-              ]}
-              onPress={() => setFormData(prev => ({ ...prev, role: role.key }))}
-            >
-              <Text style={[
-                styles.radioButtonText,
-                formData.role === role.key && styles.radioButtonTextActive
-              ]}>
-                {role.label}
-              </Text>
-            </TouchableOpacity>
+              title={role.label}
+              variant={form.values.role === role.key ? 'primary' : 'outline'}
+              size="small"
+              onPress={() => form.setValue('role', role.key)}
+              style={styles.radioButton}
+            />
           ))}
         </View>
       </View>
@@ -597,70 +556,68 @@ const EmployeeForm = ({ formData, setFormData, isEdit }) => {
         <Text style={styles.formLabel}>Durum</Text>
         <View style={styles.radioGroup}>
           {statuses.map((status) => (
-            <TouchableOpacity
+            <Button
               key={status.key}
-              style={[
-                styles.radioButton,
-                formData.status === status.key && styles.radioButtonActive
-              ]}
-              onPress={() => setFormData(prev => ({ ...prev, status: status.key }))}
-            >
-              <Text style={[
-                styles.radioButtonText,
-                formData.status === status.key && styles.radioButtonTextActive
-              ]}>
-                {status.label}
-              </Text>
-            </TouchableOpacity>
+              title={status.label}
+              variant={form.values.status === status.key ? 'primary' : 'outline'}
+              size="small"
+              onPress={() => form.setValue('status', status.key)}
+              style={styles.radioButton}
+            />
           ))}
         </View>
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>E-posta</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.email}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+        <Input
+          label="E-posta *"
+          value={form.values.email}
+          onChangeText={(text) => form.setValue('email', text)}
           placeholder="ornek@email.com"
           keyboardType="email-address"
+          error={form.errors.email}
+          onBlur={() => form.validateField('email')}
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Telefon *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.phone}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
+        <Input
+          label="Telefon *"
+          value={form.values.phone}
+          onChangeText={(text) => form.setValue('phone', text)}
           placeholder="0555 123 4567"
           keyboardType="phone-pad"
+          error={form.errors.phone}
+          onBlur={() => form.validateField('phone')}
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>İşe Başlama Tarihi *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.joinDate}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, joinDate: text }))}
+        <Input
+          label="İşe Başlama Tarihi *"
+          value={form.values.joinDate}
+          onChangeText={(text) => form.setValue('joinDate', text)}
           placeholder="15-01-2024"
+          error={form.errors.joinDate}
+          onBlur={() => form.validateField('joinDate')}
         />
         <Text style={styles.formHelpText}>Örn: 15-01-2024</Text>
       </View>
 
-      {formData.status === 'inactive' && (
+      {form.values.status === 'inactive' && (
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>İşten Çıkış Tarihi *</Text>
-          <TextInput
-            style={styles.formInput}
-            value={formData.exitDate}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, exitDate: text }))}
+          <Input
+            label="İşten Çıkış Tarihi *"
+            value={form.values.exitDate}
+            onChangeText={(text) => form.setValue('exitDate', text)}
             placeholder="31-12-2024"
+            error={form.errors.exitDate}
+            onBlur={() => form.validateField('exitDate')}
           />
           <Text style={styles.formHelpText}>Örn: 31-12-2024</Text>
         </View>
       )}
+      </View>
     </ScrollView>
   );
 };
@@ -668,26 +625,25 @@ const EmployeeForm = ({ formData, setFormData, isEdit }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...Typography.styles.h2,
+    color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -699,34 +655,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing['4xl'],
   },
   accessDeniedIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   accessDeniedTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#dc2626',
-    marginBottom: 8,
+    ...Typography.styles.h3,
+    color: Colors.error,
+    marginBottom: Spacing.sm,
   },
   accessDeniedText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   statsSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
+    marginTop: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -735,180 +689,135 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.gray50,
+    padding: Spacing.lg,
+    borderRadius: Spacing.radius.lg,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
+    ...Typography.styles.h3,
+    color: Colors.secondary,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   employeesSection: {
-    padding: 20,
+    padding: Spacing.screenPadding,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   addButton: {
-    backgroundColor: '#1e3a8a',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    // Button component handles styling
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: Spacing['4xl'],
   },
   emptyStateIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
   emptyStateText: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   employeeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
   },
   employeeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    flexDirection: 'column',
+    marginBottom: Spacing.md,
   },
   employeeInfo: {
-    flex: 1,
+    marginBottom: Spacing.md,
   },
   employeeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   employeeRole: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
+    alignSelf: 'flex-start',
   },
   employeeActions: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
+    marginRight: Spacing.sm,
   },
   statusText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '600',
+    ...Typography.styles.caption,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
   },
   editButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    marginRight: Spacing.sm,
+    minWidth: 80,
+    height: 36,
   },
-  editButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+  deleteButton: {
+    marginLeft: Spacing.sm,
+    minWidth: 80,
+    height: 36,
   },
   employeeDetails: {
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    paddingTop: 12,
+    borderTopColor: Colors.gray100,
+    paddingTop: Spacing.md,
   },
   detailItem: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
   },
   // Arama ve Filtreleme Stilleri
   searchSection: {
-    backgroundColor: '#ffffff',
-    marginTop: 8,
-    padding: 20,
+    marginTop: Spacing.sm,
+    padding: Spacing.screenPadding,
   },
   searchContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   searchInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
+    marginBottom: Spacing.md,
   },
   filtersContainer: {
-    marginTop: 8,
+    marginTop: Spacing.sm,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  filterButtonTextActive: {
-    color: '#ffffff',
+    marginRight: Spacing.sm,
   },
   // Çalışan Kartı Güncellemeleri
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  deleteButton: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  deleteButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    gap: Spacing.sm,
   },
   // Modal Stilleri
   modalOverlay: {
@@ -918,116 +827,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '90%',
-    maxHeight: '80%',
+    width: '95%',
+    maxHeight: '90%',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    maxHeight: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.lg,
+    maxHeight: '95%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 20,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
     textAlign: 'center',
+  },
+  modalScrollView: {
+    maxHeight: 500,
+    marginBottom: Spacing.lg,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 12,
+    gap: Spacing.md,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: Spacing.md,
+    borderRadius: Spacing.radius.md,
+    borderWidth: 1,
+    borderColor: Colors.error,
     alignItems: 'center',
+    backgroundColor: Colors.white,
   },
   cancelButtonText: {
-    color: '#6b7280',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.styles.button,
+    color: Colors.error,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: Spacing.md,
+    borderRadius: Spacing.radius.md,
     alignItems: 'center',
+    backgroundColor: Colors.primary,
   },
   saveButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.styles.button,
+    color: Colors.white,
   },
   // Form Stilleri
+  formScrollView: {
+    maxHeight: 900,
+  },
   formContainer: {
-    maxHeight: 400,
+    padding: Spacing.md,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#ffffff',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
   formHelpText: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   radioGroup: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.sm,
   },
   radioButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  radioButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  radioButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  radioButtonTextActive: {
-    color: '#ffffff',
+    flex: 1,
+    minWidth: 100,
+    marginHorizontal: Spacing.xs,
   },
   // Mevcut kullanıcı badge'i
   currentUserBadge: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: Colors.border,
   },
   currentUserText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6b7280',
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textSecondary,
   },
 });
 

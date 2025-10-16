@@ -1,4 +1,4 @@
-/**
+/**   NAVIGATION KLASÖRÜNÜN AMACI: Navigasyon yapısını yönetir. Birden fazla bileşende kullanılan navigasyon yapısı.
  * APP NAVIGATOR - Ana Navigasyon Yapısı
  * 
  * Bu dosya tüm uygulama navigasyon yapısını yönetir. Rol tabanlı navigasyon sağlar ve

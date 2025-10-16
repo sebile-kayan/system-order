@@ -9,8 +9,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -18,6 +16,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import Card from '../components/Card';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -59,46 +63,38 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.subtitle}>Çalışan Girişi</Text>
         </View>
 
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Kullanıcı Adı</Text>
-            <TextInput
-              style={styles.input}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Kullanıcı adınızı giriniz"
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Kullanıcı adı"
-              testID="username-input"
-            />
-          </View>
+        <Card style={styles.form}>
+          <Input
+            label="Kullanıcı Adı"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Kullanıcı adınızı giriniz"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Kullanıcı adı"
+            testID="username-input"
+          />
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Şifre</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Şifrenizi giriniz"
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Şifre"
-              testID="password-input"
-            />
-          </View>
+          <Input
+            label="Şifre"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Şifrenizi giriniz"
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Şifre"
+            testID="password-input"
+          />
 
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          <Button
+            title={isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
             onPress={handleLogin}
             disabled={isLoading}
-          >
-            <Text style={styles.loginButtonText}>
-              {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            loading={isLoading}
+            style={styles.loginButton}
+          />
+        </Card>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -126,105 +122,71 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: Spacing.screenPadding,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: Spacing['4xl'],
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
-    marginBottom: 8,
+    ...Typography.styles.h1,
+    color: Colors.secondary,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
   },
   form: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 24,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 4,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
+    padding: Spacing['2xl'],
   },
   loginButton: {
-    backgroundColor: '#1e3a8a',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  loginButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: Spacing.sm,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: Spacing['3xl'],
   },
   footerText: {
-    fontSize: 12,
-    color: '#9ca3af',
+    ...Typography.styles.caption,
+    color: Colors.textTertiary,
     textAlign: 'center',
   },
   testUsersTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 20,
-    marginBottom: 8,
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   testUsersText: {
-    fontSize: 11,
-    color: '#6b7280',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
     textAlign: 'left',
     lineHeight: 16,
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Colors.gray50,
+    padding: Spacing.md,
+    borderRadius: Spacing.radius.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
   },
   testNote: {
-    fontSize: 12,
-    color: '#dc2626',
-    fontWeight: '600',
+    ...Typography.styles.caption,
+    color: Colors.primary,
+    fontWeight: Typography.fontWeight.semibold,
     textAlign: 'center',
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#fef2f2',
-    borderRadius: 6,
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    backgroundColor: Colors.errorLight + '20',
+    borderRadius: Spacing.radius.sm,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: Colors.errorLight,
   },
 });
 

@@ -14,12 +14,16 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
   Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
 
 const TableManagementScreen = ({ navigation }) => {
   const { user, hasRole } = useAuth();
@@ -33,6 +37,23 @@ const TableManagementScreen = ({ navigation }) => {
     { id: 6, number: '6', capacity: 8, status: 'empty', currentGuests: 0, duration: null },
   ]);
 
+  // Sadece admin erişebilir
+  if (!hasRole('admin')) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.safeArea}>
+          <View style={[styles.accessDenied, { paddingTop: 50 }]}>
+            <Text style={styles.accessDeniedIcon}>🚫</Text>
+            <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
+            <Text style={styles.accessDeniedText}>
+              Bu sayfaya erişim için yönetici yetkisi gereklidir.
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   const onRefresh = () => {
     setRefreshing(true);
     // Simulate API call
@@ -43,12 +64,12 @@ const TableManagementScreen = ({ navigation }) => {
 
   const getStatusColor = (status) => {
     const colors = {
-      empty: '#10b981',
-      occupied: '#f59e0b',
-      reserved: '#8b5cf6',
-      maintenance: '#ef4444',
+      empty: Colors.success,
+      occupied: Colors.warning,
+      reserved: Colors.info,
+      maintenance: Colors.error,
     };
-    return colors[status] || '#6b7280';
+    return colors[status] || Colors.gray200;
   };
 
   const getStatusText = (status) => {
@@ -71,15 +92,25 @@ const TableManagementScreen = ({ navigation }) => {
     return icons[status] || '⚪';
   };
 
-  const handleTableAction = (table, action) => {
-    Alert.alert(
-      `Masa ${table.number}`,
-      `${action} işlemi yakında eklenecek.`
-    );
-  };
-
   const handleAddTable = () => {
     Alert.alert('Yeni Masa', 'Yeni masa ekleme özelliği yakında eklenecek.');
+  };
+
+  const handleRemoveTable = (tableId) => {
+    Alert.alert(
+      'Masa Sil',
+      'Bu masayı silmek istediğinizden emin misiniz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: () => {
+            setTables(tables.filter(t => t.id !== tableId));
+          }
+        }
+      ]
+    );
   };
 
   // Admin yetkisi kontrolü
@@ -121,39 +152,43 @@ const TableManagementScreen = ({ navigation }) => {
         }
       >
         {/* İstatistikler */}
-        <View style={styles.statsSection}>
+        <Card style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Masa Durumları</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
+            <Card style={styles.statCard}>
               <Text style={styles.statNumber}>{emptyTables}</Text>
               <Text style={styles.statLabel}>Boş</Text>
               <Text style={styles.statIcon}>🟢</Text>
-            </View>
-            <View style={styles.statCard}>
+            </Card>
+            <Card style={styles.statCard}>
               <Text style={styles.statNumber}>{occupiedTables}</Text>
               <Text style={styles.statLabel}>Dolu</Text>
               <Text style={styles.statIcon}>🟡</Text>
-            </View>
-            <View style={styles.statCard}>
+            </Card>
+            <Card style={styles.statCard}>
               <Text style={styles.statNumber}>{reservedTables}</Text>
               <Text style={styles.statLabel}>Rezerve</Text>
               <Text style={styles.statIcon}>🟣</Text>
-            </View>
-            <View style={styles.statCard}>
+            </Card>
+            <Card style={styles.statCard}>
               <Text style={styles.statNumber}>{maintenanceTables}</Text>
               <Text style={styles.statLabel}>Bakım</Text>
               <Text style={styles.statIcon}>🔴</Text>
-            </View>
+            </Card>
           </View>
-        </View>
+        </Card>
 
         {/* Masa Listesi */}
-        <View style={styles.tablesSection}>
+        <Card style={styles.tablesSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Masa Listesi</Text>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddTable}>
-              <Text style={styles.addButtonText}>+ Yeni Masa</Text>
-            </TouchableOpacity>
+            <Button
+              title="+ Yeni Masa"
+              variant="primary"
+              size="small"
+              onPress={handleAddTable}
+              style={styles.addButton}
+            />
           </View>
 
           {tables.length === 0 ? (
@@ -166,7 +201,7 @@ const TableManagementScreen = ({ navigation }) => {
             </View>
           ) : (
             tables.map((table) => (
-              <View key={table.id} style={styles.tableCard}>
+              <Card key={table.id} style={styles.tableCard}>
                 <View style={styles.tableHeader}>
                   <View style={styles.tableInfo}>
                     <Text style={styles.tableNumber}>Masa {table.number}</Text>
@@ -189,77 +224,18 @@ const TableManagementScreen = ({ navigation }) => {
                 )}
 
                 <View style={styles.tableActions}>
-                  {table.status === 'empty' && (
-                    <>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Rezerve Et')}
-                      >
-                        <Text style={styles.actionButtonText}>Rezerve Et</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Bakıma Al')}
-                      >
-                        <Text style={styles.actionButtonText}>Bakıma Al</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-                  
-                  {table.status === 'occupied' && (
-                    <>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Hesap İste')}
-                      >
-                        <Text style={styles.actionButtonText}>Hesap İste</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Masa Boşalt')}
-                      >
-                        <Text style={styles.actionButtonText}>Masa Boşalt</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {table.status === 'reserved' && (
-                    <>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Rezervasyonu İptal Et')}
-                      >
-                        <Text style={styles.actionButtonText}>İptal Et</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleTableAction(table, 'Müşteri Geldi')}
-                      >
-                        <Text style={styles.actionButtonText}>Müşteri Geldi</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {table.status === 'maintenance' && (
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => handleTableAction(table, 'Bakımı Tamamla')}
-                    >
-                      <Text style={styles.actionButtonText}>Bakımı Tamamla</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity 
-                    style={styles.editButton}
-                    onPress={() => handleTableAction(table, 'Düzenle')}
-                  >
-                    <Text style={styles.editButtonText}>Düzenle</Text>
-                  </TouchableOpacity>
+                  <Button
+                    title="Sil"
+                    variant="danger"
+                    size="small"
+                    onPress={() => handleRemoveTable(table.id)}
+                    style={styles.actionButton}
+                  />
                 </View>
-              </View>
+              </Card>
             ))
           )}
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -268,26 +244,25 @@ const TableManagementScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...Typography.styles.h2,
+    color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -299,34 +274,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing['4xl'],
   },
   accessDeniedIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   accessDeniedTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#dc2626',
-    marginBottom: 8,
+    ...Typography.styles.h3,
+    color: Colors.error,
+    marginBottom: Spacing.sm,
   },
   accessDeniedText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   statsSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
+    marginTop: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -335,149 +308,153 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.gray50,
+    padding: Spacing.lg,
+    borderRadius: Spacing.radius.lg,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
+    ...Typography.styles.h3,
+    color: Colors.primary,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   statIcon: {
     fontSize: 16,
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   tablesSection: {
-    padding: 20,
+    padding: Spacing.screenPadding,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   addButton: {
-    backgroundColor: '#1e3a8a',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.sm,
   },
   addButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: Colors.white,
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: Spacing['4xl'],
   },
   emptyStateIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
   emptyStateText: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   tableCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.white,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E5E7EB',
+    elevation: 3,
   },
   tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   tableInfo: {
     flex: 1,
   },
   tableNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   tableCapacity: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
+    alignSelf: 'flex-start',
   },
   tableStatus: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   statusIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 20,
+    marginRight: Spacing.sm,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
   },
   statusText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '600',
+    ...Typography.styles.caption,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
   },
   occupancyInfo: {
-    backgroundColor: '#fef3c7',
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 12,
+    backgroundColor: Colors.warningLight,
+    padding: Spacing.sm,
+    borderRadius: Spacing.radius.sm,
+    marginBottom: Spacing.md,
   },
   occupancyText: {
-    fontSize: 14,
-    color: '#92400e',
+    ...Typography.styles.bodySmall,
+    color: Colors.warning,
     textAlign: 'center',
   },
   tableActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: Spacing.sm,
   },
   actionButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginBottom: 8,
+    backgroundColor: Colors.info,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
+    marginBottom: Spacing.sm,
   },
   actionButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: Colors.white,
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.semibold,
   },
   editButton: {
-    backgroundColor: '#6b7280',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginBottom: 8,
+    backgroundColor: Colors.gray500,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
+    marginBottom: Spacing.sm,
   },
   editButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: Colors.white,
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

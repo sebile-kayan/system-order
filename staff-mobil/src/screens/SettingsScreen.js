@@ -8,21 +8,32 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   Alert,
   Switch,
-  Modal,
-  TextInput,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { useNotifications } from '../hooks/useNotifications';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Modal from '../components/Modal';
+import useModal from '../hooks/useModal';
 
 const SettingsScreen = () => {
   const { user, business, hasRole, switchRole, logout, updateProfile, currentRole } = useAuth();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { 
+    settings: notificationSettings, 
+    updateSetting, 
+    isLoading: notificationsLoading,
+    resetSettings 
+  } = useNotifications();
   const [darkMode, setDarkMode] = useState(false);
   
   // Profil düzenleme modalı
@@ -32,6 +43,15 @@ const SettingsScreen = () => {
     email: '',
     phone: '',
   });
+  const [profileErrors, setProfileErrors] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
+
+  // İşletme bilgileri modalı (sadece görüntüleme)
+  const businessModal = useModal();
+
 
   // Kullanıcı bilgileri değiştiğinde form verilerini güncelle
   useEffect(() => {
@@ -47,14 +67,32 @@ const SettingsScreen = () => {
     });
   }, [user?.id, currentRole]);
 
+
   const handleLogout = () => {
     logout();
   };
 
   const handleRoleSwitch = (role) => {
+    const roleNames = {
+      'admin': 'Yönetici',
+      'chef': 'Şef',
+      'waiter': 'Garson',
+      'cashier': 'Kasiyer'
+    };
+    
+    // Eğer zaten bu roldeyse uyarı ver
+    if (currentRole === role) {
+      Alert.alert(
+        'Rol Değiştir',
+        `Zaten ${roleNames[role]} rolündesiniz.`,
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+    
     Alert.alert(
       'Rol Değiştir',
-      `${role.toUpperCase()} rolüne geçmek istediğinizden emin misiniz?`,
+      `${roleNames[role]} rolüne geçmek istediğinizden emin misiniz?`,
       [
         { text: 'İptal', style: 'cancel' },
         {
@@ -81,19 +119,97 @@ const SettingsScreen = () => {
     );
   };
 
+  // Bildirim ayarlarını sıfırla
+  const handleResetNotifications = () => {
+    Alert.alert(
+      'Bildirim Ayarlarını Sıfırla',
+      'Tüm bildirim ayarları varsayılan değerlere döndürülecek. Emin misiniz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        { text: 'Sıfırla', onPress: resetSettings, style: 'destructive' }
+      ]
+    );
+  };
+
+  // İşletme bilgileri modalı (sadece görüntüleme)
+  const handleBusinessInfo = () => {
+    businessModal.openModal();
+  };
+
+
   // Profil düzenleme fonksiyonları
   const handleEditProfile = () => {
+    console.log('Profil düzenle butonuna tıklandı');
+    
+    // Mevcut kullanıcı bilgilerini yükle
+    if (user) {
+      setProfileData({
+        fullName: user.full_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+      
+      // Error state'leri temizle
+      setProfileErrors({
+        fullName: '',
+        email: '',
+        phone: '',
+      });
+    }
+    
     setShowProfileModal(true);
   };
 
   const handleSaveProfile = async () => {
+    // Error state'leri temizle
+    setProfileErrors({
+      fullName: '',
+      email: '',
+      phone: '',
+    });
+
+    let hasError = false;
+    const newErrors = {
+      fullName: '',
+      email: '',
+      phone: '',
+    };
+
+    // Ad Soyad kontrolü
     if (!profileData.fullName.trim()) {
-      Alert.alert('Hata', 'Ad Soyad alanı boş olamaz.');
-      return;
+      newErrors.fullName = 'Ad Soyad alanı zorunludur';
+      hasError = true;
     }
 
+    // E-posta kontrolü
+    if (!profileData.email.trim()) {
+      newErrors.email = 'E-posta alanı zorunludur';
+      hasError = true;
+    } else {
+      // E-posta format kontrolü
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(profileData.email)) {
+        newErrors.email = 'Geçerli bir e-posta adresi giriniz';
+        hasError = true;
+      }
+    }
+
+    // Telefon kontrolü
     if (!profileData.phone.trim()) {
-      Alert.alert('Hata', 'Telefon numarası alanı boş olamaz.');
+      newErrors.phone = 'Telefon numarası alanı zorunludur';
+      hasError = true;
+    } else {
+      // Telefon format kontrolü
+      const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+      if (!phoneRegex.test(profileData.phone)) {
+        newErrors.phone = 'Geçerli bir telefon numarası giriniz';
+        hasError = true;
+      }
+    }
+
+    // Hata varsa error state'leri güncelle ve çık
+    if (hasError) {
+      setProfileErrors(newErrors);
       return;
     }
 
@@ -101,6 +217,13 @@ const SettingsScreen = () => {
       const success = await updateProfile(profileData);
       
       if (success) {
+        // Error state'leri temizle
+        setProfileErrors({
+          fullName: '',
+          email: '',
+          phone: '',
+        });
+        
         Alert.alert(
           'Profil Güncellendi',
           'Profil bilgileriniz başarıyla güncellendi.',
@@ -116,6 +239,14 @@ const SettingsScreen = () => {
 
   const handleCancelProfile = () => {
     setShowProfileModal(false);
+    
+    // Error state'leri temizle
+    setProfileErrors({
+      fullName: '',
+      email: '',
+      phone: '',
+    });
+    
     // Form verilerini mevcut kullanıcı bilgileriyle sıfırla
     if (user) {
       setProfileData({
@@ -172,12 +303,23 @@ const SettingsScreen = () => {
               {availableRoles.map((role) => (
                 <TouchableOpacity
                   key={role.id}
-                  style={[styles.roleCard, { borderLeftColor: role.color }]}
+                  style={[
+                    styles.roleCard, 
+                    { borderLeftColor: role.color },
+                    currentRole === role.id && styles.currentRoleCard
+                  ]}
                   onPress={() => handleRoleSwitch(role.id)}
                 >
                   <Text style={styles.roleIcon}>{role.icon}</Text>
                   <View style={styles.roleInfo}>
-                    <Text style={styles.roleName}>{role.name}</Text>
+                    <View style={styles.roleNameContainer}>
+                      <Text style={styles.roleName}>{role.name}</Text>
+                      {currentRole === role.id && (
+                        <View style={styles.currentRoleBadge}>
+                          <Text style={styles.currentRoleText}>Bu roldesiniz</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.roleDescription}>
                       {role.id === 'admin' && 'Tüm sistem yönetimi'}
                       {role.id === 'chef' && 'Mutfak ve sipariş yönetimi'}
@@ -194,16 +336,18 @@ const SettingsScreen = () => {
         {/* Bildirim Ayarları */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bildirim Ayarları</Text>
+          
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Push Bildirimleri</Text>
+              <Text style={styles.settingTitle}>Uygulama İçi Bildirimler</Text>
               <Text style={styles.settingDescription}>Sipariş ve ödeme bildirimleri</Text>
             </View>
             <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
+              value={notificationSettings.notificationsEnabled}
+              onValueChange={(value) => updateSetting('notificationsEnabled', value)}
               trackColor={{ false: '#e5e7eb', true: '#1e3a8a' }}
-              thumbColor={notificationsEnabled ? '#ffffff' : '#f4f3f4'}
+              thumbColor={notificationSettings.notificationsEnabled ? '#ffffff' : '#f4f3f4'}
+              disabled={notificationsLoading}
             />
           </View>
           
@@ -213,12 +357,63 @@ const SettingsScreen = () => {
               <Text style={styles.settingDescription}>Bildirim sesleri</Text>
             </View>
             <Switch
-              value={soundEnabled}
-              onValueChange={setSoundEnabled}
+              value={notificationSettings.soundEnabled}
+              onValueChange={(value) => updateSetting('soundEnabled', value)}
               trackColor={{ false: '#e5e7eb', true: '#1e3a8a' }}
-              thumbColor={soundEnabled ? '#ffffff' : '#f4f3f4'}
+              thumbColor={notificationSettings.soundEnabled ? '#ffffff' : '#f4f3f4'}
+              disabled={notificationsLoading || !notificationSettings.notificationsEnabled}
             />
           </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingTitle}>Sipariş Bildirimleri</Text>
+              <Text style={styles.settingDescription}>Yeni sipariş uyarıları</Text>
+            </View>
+            <Switch
+              value={notificationSettings.orderNotifications}
+              onValueChange={(value) => updateSetting('orderNotifications', value)}
+              trackColor={{ false: '#e5e7eb', true: '#1e3a8a' }}
+              thumbColor={notificationSettings.orderNotifications ? '#ffffff' : '#f4f3f4'}
+              disabled={notificationsLoading || !notificationSettings.notificationsEnabled}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingTitle}>Ödeme Bildirimleri</Text>
+              <Text style={styles.settingDescription}>Ödeme tamamlama uyarıları</Text>
+            </View>
+            <Switch
+              value={notificationSettings.paymentNotifications}
+              onValueChange={(value) => updateSetting('paymentNotifications', value)}
+              trackColor={{ false: '#e5e7eb', true: '#1e3a8a' }}
+              thumbColor={notificationSettings.paymentNotifications ? '#ffffff' : '#f4f3f4'}
+              disabled={notificationsLoading || !notificationSettings.notificationsEnabled}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingTitle}>Sistem Bildirimleri</Text>
+              <Text style={styles.settingDescription}>Sistem durumu uyarıları</Text>
+            </View>
+            <Switch
+              value={notificationSettings.systemNotifications}
+              onValueChange={(value) => updateSetting('systemNotifications', value)}
+              trackColor={{ false: '#e5e7eb', true: '#1e3a8a' }}
+              thumbColor={notificationSettings.systemNotifications ? '#ffffff' : '#f4f3f4'}
+              disabled={notificationsLoading || !notificationSettings.notificationsEnabled}
+            />
+          </View>
+
+          <TouchableOpacity 
+            style={styles.resetButton} 
+            onPress={handleResetNotifications}
+            disabled={notificationsLoading}
+          >
+            <Text style={styles.resetButtonText}>Bildirim Ayarlarını Sıfırla</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Görünüm Ayarları */}
@@ -240,129 +435,176 @@ const SettingsScreen = () => {
 
         {/* Admin Ayarları */}
         {hasRole('admin') && (
-          <View style={styles.section}>
+          <Card variant="outlined" style={styles.section}>
             <Text style={styles.sectionTitle}>İşletme Yönetimi</Text>
-            <TouchableOpacity style={styles.adminAction}>
-              <Text style={styles.adminActionIcon}>👥</Text>
-              <Text style={styles.adminActionText}>Çalışan Yönetimi</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.adminAction}>
+            <TouchableOpacity style={styles.adminAction} onPress={handleBusinessInfo}>
               <Text style={styles.adminActionIcon}>🏢</Text>
               <Text style={styles.adminActionText}>İşletme Bilgileri</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.adminAction}>
-              <Text style={styles.adminActionIcon}>🔧</Text>
-              <Text style={styles.adminActionText}>Sistem Ayarları</Text>
-            </TouchableOpacity>
-          </View>
+          </Card>
         )}
 
         {/* Yardım ve Destek */}
-        <View style={styles.section}>
+        <Card variant="outlined" style={styles.section}>
           <Text style={styles.sectionTitle}>Yardım ve Destek</Text>
           <TouchableOpacity style={styles.helpAction} onPress={handleContactSupport}>
             <Text style={styles.helpActionIcon}>📞</Text>
             <Text style={styles.helpActionText}>Destek İletişim</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.helpAction}>
-            <Text style={styles.helpActionIcon}>❓</Text>
-            <Text style={styles.helpActionText}>Sık Sorulan Sorular</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.helpAction} onPress={handleAbout}>
             <Text style={styles.helpActionIcon}>ℹ️</Text>
             <Text style={styles.helpActionText}>Uygulama Hakkında</Text>
           </TouchableOpacity>
-        </View>
+        </Card>
 
         {/* Çıkış */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>⏻</Text>
-          </TouchableOpacity>
-        </View>
+        <Card style={styles.section}>
+          <Button
+            title="Çıkış Yap"
+            variant="danger"
+            size="large"
+            onPress={handleLogout}
+            style={styles.logoutButton}
+          />
+        </Card>
       </ScrollView>
 
       {/* Profil Düzenleme Modalı */}
       <Modal
         visible={showProfileModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleCancelProfile}
+        onClose={handleCancelProfile}
+        title="Profil Düzenle"
+        size="large"
+        showCloseButton={false}
+        primaryButtonText="Kaydet"
+        onPrimaryPress={handleSaveProfile}
+        secondaryButtonText="İptal"
+        onSecondaryPress={handleCancelProfile}
+        scrollable={true}
       >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalContainer}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-          >
-            <ScrollView 
-              style={styles.modalContent}
-              contentContainerStyle={styles.modalContentContainer}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.modalTitle}>Profil Düzenle</Text>
-              
-              <View style={styles.formContainer}>
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Ad Soyad *</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={profileData.fullName}
-                    onChangeText={(text) => setProfileData(prev => ({ ...prev, fullName: text }))}
-                    placeholder="Ad soyadınızı giriniz"
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
+        <View style={styles.formContainer}>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Ad Soyad *</Text>
+            <TextInput
+              style={[styles.formInput, profileErrors.fullName && styles.errorInput]}
+              value={profileData.fullName}
+              onChangeText={(text) => {
+                setProfileData(prev => ({ ...prev, fullName: text }));
+                if (profileErrors.fullName) {
+                  setProfileErrors(prev => ({ ...prev, fullName: '' }));
+                }
+              }}
+              placeholder="Ad soyadınızı giriniz"
+              placeholderTextColor="#9ca3af"
+            />
+            {profileErrors.fullName && (
+              <Text style={styles.formErrorText}>{profileErrors.fullName}</Text>
+            )}
+          </View>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>E-posta</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={profileData.email}
-                    onChangeText={(text) => setProfileData(prev => ({ ...prev, email: text }))}
-                    placeholder="E-posta adresinizi giriniz"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>E-posta *</Text>
+            <TextInput
+              style={[styles.formInput, profileErrors.email && styles.errorInput]}
+              value={profileData.email}
+              onChangeText={(text) => {
+                setProfileData(prev => ({ ...prev, email: text }));
+                if (profileErrors.email) {
+                  setProfileErrors(prev => ({ ...prev, email: '' }));
+                }
+              }}
+              placeholder="E-posta adresinizi giriniz"
+              placeholderTextColor="#9ca3af"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {profileErrors.email && (
+              <Text style={styles.formErrorText}>{profileErrors.email}</Text>
+            )}
+          </View>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Telefon *</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={profileData.phone}
-                    onChangeText={(text) => setProfileData(prev => ({ ...prev, phone: text }))}
-                    placeholder="Telefon numaranızı giriniz"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="phone-pad"
-                  />
-                </View>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Telefon *</Text>
+            <TextInput
+              style={[styles.formInput, profileErrors.phone && styles.errorInput]}
+              value={profileData.phone}
+              onChangeText={(text) => {
+                setProfileData(prev => ({ ...prev, phone: text }));
+                if (profileErrors.phone) {
+                  setProfileErrors(prev => ({ ...prev, phone: '' }));
+                }
+              }}
+              placeholder="Telefon numaranızı giriniz"
+              placeholderTextColor="#9ca3af"
+              keyboardType="phone-pad"
+            />
+            {profileErrors.phone && (
+              <Text style={styles.formErrorText}>{profileErrors.phone}</Text>
+            )}
+          </View>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Kullanıcı Adı</Text>
-                  <TextInput
-                    style={[styles.formInput, styles.disabledInput]}
-                    value={user?.username || ''}
-                    editable={false}
-                    placeholderTextColor="#9ca3af"
-                  />
-                  <Text style={styles.formHelpText}>Kullanıcı adı değiştirilemez</Text>
-                </View>
-              </View>
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelProfile}>
-                  <Text style={styles.cancelButtonText}>İptal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-                  <Text style={styles.saveButtonText}>Kaydet</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Kullanıcı Adı</Text>
+            <TextInput
+              style={[styles.formInput, styles.disabledInput]}
+              value={user?.username || ''}
+              editable={false}
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.formHelpText}>Kullanıcı adı değiştirilemez</Text>
+          </View>
         </View>
       </Modal>
+
+      {/* İşletme Bilgileri Modalı (Sadece Görüntüleme) */}
+      <Modal
+        visible={businessModal.isVisible}
+        onClose={businessModal.closeModal}
+        title="İşletme Bilgileri"
+        size="medium"
+        showCloseButton={false}
+        primaryButtonText="Kapat"
+        onPrimaryPress={businessModal.closeModal}
+        primaryButtonStyle={styles.softBlueButton}
+      >
+        <View style={styles.businessInfoContainer}>
+              
+              <View style={styles.businessInfoContainer}>
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>İşletme Adı</Text>
+                  <Text style={styles.businessInfoValue}>{business?.name || 'Belirtilmemiş'}</Text>
+                </View>
+
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>Adres</Text>
+                  <Text style={styles.businessInfoValue}>{business?.address || 'Belirtilmemiş'}</Text>
+                </View>
+
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>Telefon</Text>
+                  <Text style={styles.businessInfoValue}>{business?.phone || 'Belirtilmemiş'}</Text>
+                </View>
+
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>E-posta</Text>
+                  <Text style={styles.businessInfoValue}>{business?.email || 'Belirtilmemiş'}</Text>
+                </View>
+
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>Durum</Text>
+                  <Text style={[
+                    styles.businessInfoValue,
+                    { color: business?.is_active ? '#059669' : '#dc2626' }
+                  ]}>
+                    {business?.is_active ? 'Aktif' : 'Pasif'}
+                  </Text>
+                </View>
+
+              </View>
+
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -398,7 +640,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   section: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
     marginTop: 8,
     padding: 20,
   },
@@ -447,6 +689,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  editButton: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
   rolesContainer: {
     gap: 12,
   },
@@ -467,11 +722,31 @@ const styles = StyleSheet.create({
   roleInfo: {
     flex: 1,
   },
+  roleNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   roleName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 4,
+  },
+  currentRoleCard: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#0ea5e9',
+  },
+  currentRoleBadge: {
+    backgroundColor: '#0ea5e9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  currentRoleText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
   },
   roleDescription: {
     fontSize: 12,
@@ -533,34 +808,48 @@ const styles = StyleSheet.create({
   logoutButton: {
     backgroundColor: '#dc2626',
     paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    boxShadow: '0 4px 8px rgba(220, 38, 38, 0.3)',
+    elevation: 6,
+  },
+  logoutButtonIcon: {
+    fontSize: 18,
+    marginRight: 8,
   },
   logoutButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   // Modal Stilleri
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    width: '90%',
-    maxHeight: '85%',
+    width: '95%',
+    maxHeight: '90%',
     justifyContent: 'center',
   },
   modalContent: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     maxHeight: '100%',
-  },
-  modalContentContainer: {
     padding: 20,
-    paddingBottom: 30,
+  },
+  modalScrollView: {
+    maxHeight: 500,
+    marginBottom: 20,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
@@ -570,22 +859,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    flex: 1,
+    padding: Spacing.lg,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: Spacing.xl,
   },
   formLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   formInput: {
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    padding: 12,
+    padding: Spacing.md,
     fontSize: 16,
     color: '#1f2937',
     backgroundColor: '#ffffff',
@@ -594,9 +883,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     color: '#6b7280',
   },
+  errorInput: {
+    borderColor: '#ef4444',
+    borderWidth: 2,
+  },
   formHelpText: {
     fontSize: 12,
     color: '#6b7280',
+    marginTop: 4,
+  },
+  formErrorText: {
+    fontSize: 12,
+    color: '#ef4444',
     marginTop: 4,
   },
   modalButtons: {
@@ -628,6 +926,77 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  resetButton: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  resetButtonText: {
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  textAreaInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  businessInfoContainer: {
+    padding: Spacing.md,
+    marginBottom: 5,
+  },
+  softBlueButton: {
+    backgroundColor: '#60a5fa', // Soft blue
+    borderColor: '#60a5fa',
+  },
+  businessInfoItem: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    elevation: 1,
+  },
+  businessInfoLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  businessInfoValue: {
+    fontSize: 15,
+    color: '#1e293b',
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  closeButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)',
+    elevation: 6,
+  },
+  closeButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  modalButtonsCentered: {
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 8,
   },
 });
 

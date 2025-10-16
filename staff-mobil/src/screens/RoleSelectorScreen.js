@@ -8,11 +8,15 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
 
 const RoleSelectorScreen = ({ navigation }) => {
   const { user, currentRole, switchRole, hasRole } = useAuth();
@@ -23,28 +27,28 @@ const RoleSelectorScreen = ({ navigation }) => {
       name: 'Yönetici',
       description: 'Tüm sistem yönetimi, raporlar ve ayarlar',
       icon: '👑',
-      color: '#dc2626',
+      color: Colors.error,
     },
     {
       id: 'chef',
       name: 'Şef',
       description: 'Yemek siparişlerini yönetme ve hazırlama',
       icon: '👨‍🍳',
-      color: '#ea580c',
+      color: Colors.warning,
     },
     {
       id: 'waiter',
       name: 'Garson',
       description: 'Masa takibi, sipariş teslimi ve müşteri hizmetleri',
       icon: '👨‍💼',
-      color: '#059669',
+      color: Colors.success,
     },
     {
       id: 'cashier',
       name: 'Kasiyer',
       description: 'Ödeme işlemleri ve kasa yönetimi',
       icon: '💰',
-      color: '#7c3aed',
+      color: Colors.secondary,
     },
   ];
 
@@ -69,49 +73,54 @@ const RoleSelectorScreen = ({ navigation }) => {
           </Text>
         </View>
         {availableRoles.map((role) => (
-          <TouchableOpacity
+          <Card
             key={role.id}
             style={[
               styles.roleCard,
-              { borderLeftColor: role.color },
+              { borderLeftColor: role.color, borderLeftWidth: 4 },
               currentRole === role.id && styles.selectedCard
             ]}
-            onPress={() => handleRoleSelect(role.id)}
           >
-            <View style={styles.roleHeader}>
-              <Text style={styles.roleIcon}>{role.icon}</Text>
-              <View style={styles.roleInfo}>
-                <Text style={styles.roleName}>{role.name}</Text>
-                <Text style={styles.roleDescription}>{role.description}</Text>
-              </View>
-              {currentRole === role.id && (
-                <View style={[styles.selectedBadge, { backgroundColor: role.color }]}>
-                  <Text style={styles.selectedBadgeText}>Aktif</Text>
+            <Button
+              title=""
+              variant="ghost"
+              onPress={() => handleRoleSelect(role.id)}
+              style={styles.roleButton}
+            >
+              <View style={styles.roleHeader}>
+                <Text style={styles.roleIcon}>{role.icon}</Text>
+                <View style={styles.roleInfo}>
+                  <Text style={styles.roleName}>{role.name}</Text>
+                  <Text style={styles.roleDescription}>{role.description}</Text>
                 </View>
-              )}
-            </View>
-          </TouchableOpacity>
+                {currentRole === role.id && (
+                  <View style={[styles.selectedBadge, { backgroundColor: role.color }]}>
+                    <Text style={styles.selectedBadgeText}>Aktif</Text>
+                  </View>
+                )}
+              </View>
+            </Button>
+          </Card>
         ))}
       </ScrollView>
 
-      <View style={styles.quickSwitch}>
-        <Text style={styles.quickSwitchTitle}>Hızlı Geçiş</Text>
+      <Card style={styles.quickSwitch}>
         <View style={styles.quickSwitchButtons}>
           {availableRoles.map((role) => (
-            <TouchableOpacity
+            <Button
               key={role.id}
+              title={role.icon}
+              variant={currentRole === role.id ? 'primary' : 'outline'}
+              size="small"
+              onPress={() => handleRoleSelect(role.id)}
               style={[
                 styles.quickSwitchButton,
-                { backgroundColor: role.color },
-                currentRole === role.id && styles.quickSwitchButtonActive
+                { backgroundColor: currentRole === role.id ? role.color : Colors.white }
               ]}
-              onPress={() => handleRoleSelect(role.id)}
-            >
-              <Text style={styles.quickSwitchButtonText}>{role.icon}</Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
-      </View>
+      </Card>
     </View>
   );
 };
@@ -119,41 +128,38 @@ const RoleSelectorScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
-    padding: 20,
-    paddingTop: 50, // Header'ı aşağı taşıdık
+    padding: Spacing.screenPadding,
+    paddingTop: 50,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
-    marginBottom: 8,
+    ...Typography.styles.h2,
+    color: Colors.secondary,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.screenPadding,
   },
   roleCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    marginBottom: Spacing.lg,
   },
   selectedCard: {
     borderWidth: 2,
-    borderColor: '#1e3a8a',
+    borderColor: Colors.secondary,
+  },
+  roleButton: {
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   roleHeader: {
     flexDirection: 'row',
@@ -161,43 +167,41 @@ const styles = StyleSheet.create({
   },
   roleIcon: {
     fontSize: 32,
-    marginRight: 16,
+    marginRight: Spacing.lg,
   },
   roleInfo: {
     flex: 1,
   },
   roleName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   roleDescription: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
   selectedBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
   },
   selectedBadgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: Colors.white,
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.semibold,
   },
   quickSwitch: {
-    padding: 20,
+    padding: Spacing.screenPadding,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderTopColor: Colors.border,
   },
   quickSwitchTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 12,
+    ...Typography.styles.body,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
     textAlign: 'center',
   },
   quickSwitchButtons: {
@@ -208,16 +212,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
     opacity: 0.8,
-  },
-  quickSwitchButtonActive: {
-    opacity: 1,
-    transform: [{ scale: 1.1 }],
-  },
-  quickSwitchButtonText: {
-    fontSize: 20,
   },
 });
 

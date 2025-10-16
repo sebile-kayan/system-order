@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import { Colors } from '../../constants/Colors';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
 import FastActionCard from '../../components/FastActionCard';
@@ -103,9 +104,9 @@ const CashierDashboard = () => {
   const availableRoles = useMemo(() => {
     if (!user?.roles) return [];
     const roleButtons = [
-      { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
-      { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
-      { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: '#059669' },
+      { id: 'admin', name: 'Yönetici', icon: '👑', color: Colors.error },
+      { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: Colors.warning },
+      { id: 'waiter', name: 'Garson', icon: '👨‍💼', color: Colors.success },
     ];
     return roleButtons.filter(role => user.roles.includes(role.id));
   }, [user?.roles]);
@@ -170,22 +171,22 @@ const CashierDashboard = () => {
             <DailySummaryCard 
               number={`₺${dailyStats.totalRevenue.toFixed(0)}`} 
               label="Toplam Ciro" 
-              color="#10b981"
+              color={Colors.success}
             />
             <DailySummaryCard 
               number={dailyStats.completedPayments} 
               label="Tamamlanan Ödeme" 
-              color="#3b82f6"
+              color={Colors.info}
             />
             <DailySummaryCard 
               number={dailyStats.pendingPayments} 
               label="Bekleyen Ödeme" 
-              color="#f59e0b"
+              color={Colors.warning}
             />
             <DailySummaryCard 
               number={`₺${dailyStats.averageAmount.toFixed(0)}`} 
               label="Ortalama Tutar" 
-              color="#7c3aed"
+              color={Colors.secondary}
             />
           </View>
         </View>
@@ -277,8 +278,8 @@ const CashierDashboard = () => {
               title="Günlük Kasa Raporu"
               description="Kasa raporu görüntüle"
               icon="📊"
-              color="#7c3aed"
-              onPress={() => console.log('Kasa raporu tıklandı')}
+              color={Colors.secondary}
+              onPress={() => {}}
             />
           </View>
         </View>
@@ -290,7 +291,7 @@ const CashierDashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
@@ -305,9 +306,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
     minHeight: 70,
   },
   headerLeft: {
@@ -328,19 +329,19 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   logoutButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
   greeting: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     flexShrink: 1,
   },
   businessName: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
     flexShrink: 1,
   },
@@ -351,21 +352,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   cashierBadgeText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: 'bold',
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -392,19 +393,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 16,
   },
   statsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   statsGrid: {
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -428,12 +429,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
   tablesSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     marginBottom: 20,
   },
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   paymentCard: {
     backgroundColor: '#fef2f2',
@@ -474,7 +475,7 @@ const styles = StyleSheet.create({
   },
   emptyTableCard: {
     width: '30%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
   emptyTableNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   emptyTableText: {
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   },
   tableInfo: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   amountContainer: {
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
   },
   completedInfo: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   completedAmount: {
@@ -551,7 +552,7 @@ const styles = StyleSheet.create({
   },
   orderItem: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     flex: 1,
   },
   orderPrice: {
@@ -567,7 +568,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   paymentButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -578,7 +579,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   clearButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -598,7 +599,7 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     marginBottom: 20,
   },
@@ -609,7 +610,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -631,13 +632,13 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 4,
     textAlign: 'center',
   },
   actionDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 });

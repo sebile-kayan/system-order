@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import { Colors } from '../../constants/Colors';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
 import FastActionCard from '../../components/FastActionCard';
@@ -80,11 +81,11 @@ const WaiterDashboard = () => {
   };
 
   const getTableStatusColor = (table) => {
-    if (!table.isOccupied) return '#6b7280';
-    if (table.orderStatus === 'ready') return '#10b981';
-    if (table.orderStatus === 'served') return '#3b82f6';
-    if (table.orderStatus === 'cleaning_needed') return '#059669';
-    return '#dc2626';
+    if (!table.isOccupied) return Colors.gray500;
+    if (table.orderStatus === 'ready') return Colors.success;
+    if (table.orderStatus === 'served') return Colors.info;
+    if (table.orderStatus === 'cleaning_needed') return Colors.success;
+    return Colors.error;
   };
 
   const getTableStatusText = (table) => {
@@ -155,9 +156,9 @@ const WaiterDashboard = () => {
   };
 
   const roleButtons = [
-    { id: 'admin', name: 'Yönetici', icon: '👑', color: '#dc2626' },
-    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: '#ea580c' },
-    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: '#7c3aed' },
+    { id: 'admin', name: 'Yönetici', icon: '👑', color: Colors.error },
+    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: Colors.warning },
+    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: Colors.secondary },
   ];
 
   const availableRoles = useMemo(() => {
@@ -225,22 +226,22 @@ const WaiterDashboard = () => {
             <DailySummaryCard 
               number={occupiedTables.length} 
               label="Dolu Masa" 
-              color="#dc2626"
+              color={Colors.error}
             />
             <DailySummaryCard 
               number={readyOrders.length} 
               label="Hazır Sipariş" 
-              color="#10b981"
+              color={Colors.success}
             />
             <DailySummaryCard 
               number={emptyTables.length} 
               label="Boş Masa" 
-              color="#6b7280"
+              color={Colors.gray500}
             />
             <DailySummaryCard 
               number={tables.length} 
               label="Toplam Masa" 
-              color="#3b82f6"
+              color={Colors.info}
             />
           </View>
         </View>
@@ -328,8 +329,8 @@ const WaiterDashboard = () => {
               title="Servis Raporu"
               description="Günlük servis durumu"
               icon="📊"
-              color="#7c3aed"
-              onPress={() => console.log('Servis raporu tıklandı')}
+              color={Colors.secondary}
+              onPress={() => {}}
             />
           </View>
         </View>
@@ -341,7 +342,7 @@ const WaiterDashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
@@ -356,9 +357,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
     minHeight: 70,
   },
   headerLeft: {
@@ -373,50 +374,50 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   logoutButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: Colors.error,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   logoutButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
   greeting: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     flexShrink: 1,
   },
   businessName: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
     flexShrink: 1,
   },
   waiterBadge: {
-    backgroundColor: '#059669',
+    backgroundColor: Colors.success,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   waiterBadgeText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: 'bold',
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -443,19 +444,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 16,
   },
   statsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   statsGrid: {
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -474,12 +475,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#059669',
+    color: Colors.success,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
   urgentSection: {
@@ -493,7 +494,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
@@ -510,27 +511,27 @@ const styles = StyleSheet.create({
   },
   urgentTime: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   urgentButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: Colors.error,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   urgentButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
   tablesSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   tableCard: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -546,11 +547,11 @@ const styles = StyleSheet.create({
   tableNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
   },
   tableInfo: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -576,12 +577,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
   },
   detailValue: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#1f2937',
+    color: Colors.textPrimary,
   },
   actionButton: {
     paddingVertical: 12,
@@ -589,13 +590,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
   actionsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     marginBottom: 20,
   },
@@ -606,7 +607,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -628,13 +629,13 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 4,
     textAlign: 'center',
   },
   actionDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
 });

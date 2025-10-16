@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useAuth, ROLE_BUTTONS, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
+import { Colors } from '../../constants/Colors';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
 import FastActionCard from '../../components/FastActionCard';
@@ -49,28 +50,28 @@ const AdminDashboard = ({ navigation }) => {
       title: 'Çalışanlar',
       description: 'Çalışan ekleme/düzenleme',
       icon: '👥',
-      color: '#dc2626',
+      color: Colors.error,
     },
     {
       id: 'menu',
       title: 'Menü Yönetimi',
       description: 'Ürün ekleme/düzenleme',
       icon: '🍽️',
-      color: '#ea580c',
+      color: Colors.warning,
     },
     {
       id: 'tables',
       title: 'Masa Yönetimi',
       description: 'QR kod oluşturma',
       icon: '🪑',
-      color: '#059669',
+      color: Colors.success,
     },
     {
       id: 'reports',
       title: 'Raporlar',
       description: 'Satış analizleri',
       icon: '📊',
-      color: '#7c3aed',
+      color: Colors.secondary,
     },
   ];
 
@@ -161,7 +162,7 @@ const AdminDashboard = ({ navigation }) => {
                       navigation.navigate('Reports');
                       break;
                     default:
-                      console.log(`${action.title} tıklandı`);
+                      // Action handled
                   }
                 }}
               />
@@ -204,7 +205,7 @@ const AdminDashboard = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
@@ -219,9 +220,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
     minHeight: 70,
   },
   headerLeft: {
@@ -236,50 +237,50 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   logoutButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: Colors.error,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   logoutButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
   greeting: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     flexShrink: 1,
   },
   businessName: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginTop: 2,
     flexShrink: 1,
   },
   adminBadge: {
-    backgroundColor: '#dc2626',
+    backgroundColor: Colors.error,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   adminBadgeText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 12,
     fontWeight: 'bold',
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -306,27 +307,27 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 16,
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -353,13 +354,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
   statsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   statsGrid: {
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -378,17 +379,17 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e3a8a',
+    color: Colors.primary,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
   actionsSection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
   },
   actionsGrid: {
@@ -398,13 +399,13 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
   },
   actionIcon: {
     width: 48,
@@ -420,23 +421,23 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 4,
     textAlign: 'center',
   },
   actionDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   activitySection: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     marginBottom: 20,
   },
   activityCard: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     borderRadius: 12,
     padding: 16,
   },
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   activityIcon: {
     fontSize: 20,
@@ -457,24 +458,24 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
   },
   roleSwitchSection: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     marginTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   roleSwitchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleSwitchText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
   },

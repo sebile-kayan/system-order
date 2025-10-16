@@ -5,12 +5,13 @@
  */
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors } from '../constants/Colors';
 
 const FastActionCard = ({ 
   title, 
   description, 
   icon, 
-  color = '#dc2626', 
+  color = Colors.error, 
   onPress,
   disabled = false 
 }) => {
@@ -35,13 +36,13 @@ const FastActionCard = ({
 const styles = StyleSheet.create({
   actionCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
   },
   disabledActionCard: {
     opacity: 0.5,
@@ -56,18 +57,18 @@ const styles = StyleSheet.create({
   },
   actionIconText: {
     fontSize: 24,
-    color: '#ffffff',
+    color: Colors.white,
   },
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   actionDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
   },

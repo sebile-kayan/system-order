@@ -9,12 +9,16 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  TextInput,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Input from '../components/Input';
 
 const OrdersScreen = () => {
   const { user, currentRole, hasRole } = useAuth();
@@ -79,11 +83,11 @@ const OrdersScreen = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'preparing': return '#3b82f6';
-      case 'ready': return '#10b981';
-      case 'served': return '#6b7280';
-      default: return '#6b7280';
+      case 'pending': return Colors.warning;
+      case 'preparing': return Colors.info;
+      case 'ready': return Colors.success;
+      case 'served': return Colors.gray500;
+      default: return Colors.gray500;
     }
   };
 
@@ -99,9 +103,9 @@ const OrdersScreen = () => {
 
   const getPaymentStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'completed': return '#10b981';
-      default: return '#6b7280';
+      case 'pending': return Colors.warning;
+      case 'completed': return Colors.success;
+      default: return Colors.gray500;
     }
   };
 
@@ -156,37 +160,30 @@ const OrdersScreen = () => {
         }
       >
         {/* Arama ve Filtre */}
-        <View style={styles.searchSection}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Masa numarası veya ürün ara..."
+        <Card style={styles.searchSection}>
+          <Input
+            label="Sipariş Ara"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#9ca3af"
+            placeholder="Masa numarası veya ürün ara..."
             accessibilityLabel="Sipariş arama"
             testID="orders-search-input"
+            style={styles.searchInput}
           />
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
             {filters.map((filter) => (
-              <TouchableOpacity
+              <Button
                 key={filter.key}
-                style={[
-                  styles.filterButton,
-                  selectedFilter === filter.key && styles.filterButtonActive
-                ]}
+                title={filter.label}
+                variant={selectedFilter === filter.key ? 'primary' : 'outline'}
+                size="small"
                 onPress={() => setSelectedFilter(filter.key)}
-              >
-                <Text style={[
-                  styles.filterButtonText,
-                  selectedFilter === filter.key && styles.filterButtonTextActive
-                ]}>
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
+                style={styles.filterButton}
+              />
             ))}
           </ScrollView>
-        </View>
+        </Card>
 
         {/* Sipariş Listesi */}
         <View style={styles.ordersSection}>
@@ -200,7 +197,7 @@ const OrdersScreen = () => {
             </View>
           ) : (
             filteredOrders.map((order) => (
-              <View key={order.id} style={styles.orderCard}>
+              <Card key={order.id} style={styles.orderCard}>
                 <View style={styles.orderHeader}>
                   <View>
                     <Text style={styles.tableNumber}>{order.tableNumber}</Text>
@@ -238,26 +235,8 @@ const OrdersScreen = () => {
 
                 <View style={styles.orderFooter}>
                   <Text style={styles.totalAmount}>Toplam: ₺{order.total.toFixed(2)}</Text>
-                  
-                  {(hasRole('chef') || hasRole('admin')) && order.status === 'preparing' && (
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Text style={styles.actionButtonText}>Hazır İşaretle</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  {(hasRole('waiter') || hasRole('admin')) && order.status === 'ready' && (
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Text style={styles.actionButtonText}>Teslim Et</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  {(hasRole('cashier') || hasRole('admin')) && order.paymentStatus === 'pending' && (
-                    <TouchableOpacity style={styles.paymentButton}>
-                      <Text style={styles.paymentButtonText}>Ödeme Al</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-              </View>
+              </Card>
             ))
           )}
         </View>
@@ -269,26 +248,25 @@ const OrdersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...Typography.styles.h2,
+    color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -297,196 +275,152 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   searchSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.lg,
+    marginTop: Spacing.sm,
   },
   searchInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   filtersContainer: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    marginRight: 8,
-  },
-  filterButtonActive: {
-    backgroundColor: '#1e3a8a',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  filterButtonTextActive: {
-    color: '#ffffff',
+    marginRight: Spacing.sm,
   },
   ordersSection: {
-    padding: 20,
+    padding: Spacing.lg,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: Spacing['4xl'],
   },
   emptyStateIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
   emptyStateText: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   orderCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: Spacing.xl,
   },
   tableNumber: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
   },
   orderInfo: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   statusContainer: {
     alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.xs,
   },
   statusText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: Colors.white,
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.semibold,
   },
   paymentBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
   },
   paymentText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   itemsSection: {
-    marginBottom: 16,
-    paddingTop: 16,
+    marginBottom: Spacing.xl,
+    paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: Colors.border,
   },
   itemsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 12,
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: Colors.gray100,
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
   itemQuantity: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   itemRight: {
     alignItems: 'flex-end',
   },
   itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   itemStatusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: Spacing.radius.sm,
   },
   itemStatusText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
   },
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: Colors.border,
   },
   totalAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
+    ...Typography.styles.body,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.secondary,
   },
   actionButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    marginLeft: Spacing.sm,
   },
   paymentButton: {
-    backgroundColor: '#7c3aed',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  paymentButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    marginLeft: Spacing.sm,
   },
 });
 

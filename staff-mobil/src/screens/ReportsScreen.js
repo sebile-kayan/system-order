@@ -9,11 +9,15 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
+import Button from '../components/Button';
+import Card from '../components/Card';
 
 const ReportsScreen = () => {
   const { user, hasRole } = useAuth();
@@ -26,13 +30,13 @@ const ReportsScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.safeArea}>
-          <View style={[styles.accessDenied, { paddingTop: 50 }]}>
+          <Card style={[styles.accessDenied, { paddingTop: 50 }]}>
             <Text style={styles.accessDeniedIcon}>📊</Text>
             <Text style={styles.accessDeniedTitle}>Erişim Reddedildi</Text>
             <Text style={styles.accessDeniedText}>
               Bu sayfaya erişim için admin yetkisi gereklidir.
             </Text>
-          </View>
+          </Card>
         </View>
       </View>
     );
@@ -243,80 +247,74 @@ const ReportsScreen = () => {
         }
       >
         {/* Zaman Periyodu Seçimi */}
-        <View style={styles.periodSection}>
+        <Card style={styles.periodSection}>
           <Text style={styles.sectionTitle}>Zaman Periyodu</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodsContainer}>
             {periods.map((period) => (
-              <TouchableOpacity
+              <Button
                 key={period.key}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period.key && styles.periodButtonActive
-                ]}
+                title={period.label}
+                variant={selectedPeriod === period.key ? 'primary' : 'outline'}
+                size="small"
                 onPress={() => setSelectedPeriod(period.key)}
-              >
-                <Text style={[
-                  styles.periodButtonText,
-                  selectedPeriod === period.key && styles.periodButtonTextActive
-                ]}>
-                  {period.label}
-                </Text>
-              </TouchableOpacity>
+                style={styles.periodButton}
+              />
             ))}
           </ScrollView>
-        </View>
+        </Card>
 
         {/* Rapor Türü Seçimi */}
-        <View style={styles.reportSection}>
+        <Card style={styles.reportSection}>
           <Text style={styles.sectionTitle}>Rapor Türü</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reportsContainer}>
             {reports.map((report) => (
-              <TouchableOpacity
+              <Button
                 key={report.key}
-                style={[
-                  styles.reportButton,
-                  selectedReport === report.key && styles.reportButtonActive
-                ]}
+                title={report.label}
+                variant={selectedReport === report.key ? 'primary' : 'outline'}
+                size="small"
                 onPress={() => setSelectedReport(report.key)}
-              >
-                <Text style={[
-                  styles.reportButtonText,
-                  selectedReport === report.key && styles.reportButtonTextActive
-                ]}>
-                  {report.label}
-                </Text>
-              </TouchableOpacity>
+                style={styles.reportButton}
+              />
             ))}
           </ScrollView>
-        </View>
+        </Card>
 
         {/* Rapor İçeriği */}
-        <View style={styles.contentSection}>
+        <Card style={styles.contentSection}>
           {renderReportContent()}
-        </View>
+        </Card>
 
         {/* Hızlı İşlemler */}
-        <View style={styles.actionsSection}>
+        <Card style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Rapor İşlemleri</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📤</Text>
-              <Text style={styles.actionTitle}>PDF İndir</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📧</Text>
-              <Text style={styles.actionTitle}>E-posta Gönder</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📊</Text>
-              <Text style={styles.actionTitle}>Detaylı Analiz</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Text style={styles.actionIcon}>⚙️</Text>
-              <Text style={styles.actionTitle}>Rapor Ayarları</Text>
-            </TouchableOpacity>
+            <Button
+              title="📤 PDF İndir"
+              variant="outline"
+              size="small"
+              style={styles.actionCard}
+            />
+            <Button
+              title="📧 E-posta Gönder"
+              variant="outline"
+              size="small"
+              style={styles.actionCard}
+            />
+            <Button
+              title="📊 Detaylı Analiz"
+              variant="outline"
+              size="small"
+              style={styles.actionCard}
+            />
+            <Button
+              title="⚙️ Rapor Ayarları"
+              variant="outline"
+              size="small"
+              style={styles.actionCard}
+            />
           </View>
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -325,63 +323,45 @@ const ReportsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: Spacing.screenPadding,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...Typography.styles.h2,
+    color: Colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    ...Typography.styles.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   accessDenied: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing['4xl'],
   },
   accessDeniedIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
   accessDeniedTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#dc2626',
-    marginBottom: 8,
+    ...Typography.styles.h2,
+    color: Colors.error,
+    marginBottom: Spacing.sm,
   },
   accessDeniedText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
   },
   scrollView: {
     flex: 1,
@@ -390,134 +370,98 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Bottom navigation için makul boşluk
   },
   periodSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    marginTop: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
   },
   periodsContainer: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   periodButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    marginRight: 12,
-  },
-  periodButtonActive: {
-    backgroundColor: '#dc2626',
-  },
-  periodButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  periodButtonTextActive: {
-    color: '#ffffff',
+    marginRight: Spacing.md,
   },
   reportSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    marginTop: Spacing.sm,
   },
   reportsContainer: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   reportButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    marginRight: 12,
-  },
-  reportButtonActive: {
-    backgroundColor: '#1e3a8a',
-  },
-  reportButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  reportButtonTextActive: {
-    color: '#ffffff',
+    marginRight: Spacing.md,
   },
   contentSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    marginTop: Spacing.sm,
   },
   reportContent: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: Colors.gray50,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.screenPadding,
   },
   reportTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 20,
+    ...Typography.styles.h3,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.screenPadding,
     textAlign: 'center',
   },
   salesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: Spacing.screenPadding,
   },
   salesCard: {
     width: '48%',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.white,
+    padding: Spacing.lg,
+    borderRadius: Spacing.radius.lg,
     alignItems: 'center',
-    marginBottom: 12,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
-    elevation: 2,
+    marginBottom: Spacing.md,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    elevation: 1,
   },
   salesNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#dc2626',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    color: Colors.error,
+    marginBottom: Spacing.xs,
   },
   salesLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
   },
   progressSection: {
-    marginTop: 20,
+    marginTop: Spacing.screenPadding,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-    marginVertical: 8,
+    backgroundColor: Colors.border,
+    borderRadius: Spacing.radius.sm,
+    marginVertical: Spacing.sm,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: 4,
+    backgroundColor: Colors.success,
+    borderRadius: Spacing.radius.sm,
   },
   progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#10b981',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.success,
     textAlign: 'center',
   },
   popularItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   popularInfo: {
     flexDirection: 'row',
@@ -525,55 +469,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   popularRank: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#dc2626',
-    marginRight: 12,
+    ...Typography.styles.body,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.error,
+    marginRight: Spacing.md,
     width: 30,
   },
   popularName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937',
+    ...Typography.styles.body,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
   popularStats: {
     alignItems: 'flex-end',
   },
   popularSales: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
     marginBottom: 2,
   },
   popularRevenue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#dc2626',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.error,
   },
   hourlyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   hourlyTime: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937',
+    ...Typography.styles.body,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.textPrimary,
   },
   hourlyStats: {
     alignItems: 'flex-end',
   },
   hourlyOrders: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
     marginBottom: 2,
   },
   hourlyRevenue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#dc2626',
+    ...Typography.styles.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.error,
   },
   customerStats: {
     flexDirection: 'row',
@@ -582,29 +526,27 @@ const styles = StyleSheet.create({
   },
   customerCard: {
     width: '48%',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.white,
+    padding: Spacing.lg,
+    borderRadius: Spacing.radius.lg,
     alignItems: 'center',
-    marginBottom: 12,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
-    elevation: 2,
+    marginBottom: Spacing.md,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    elevation: 1,
   },
   customerNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    color: Colors.secondary,
+    marginBottom: Spacing.xs,
   },
   customerLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.medium,
   },
   actionsSection: {
-    padding: 20,
-    backgroundColor: '#ffffff',
-    marginTop: 8,
+    padding: Spacing.screenPadding,
+    marginTop: Spacing.sm,
     marginBottom: 40,
   },
   actionsGrid: {
@@ -614,23 +556,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  actionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  actionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
+    marginBottom: Spacing.md,
   },
 });
 
