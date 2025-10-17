@@ -121,8 +121,7 @@ const EmployeesScreen = ({ navigation }) => {
   }, {
     name: { required: true, requiredMessage: 'Ad soyad zorunludur' },
     email: {
-      required: true,
-      requiredMessage: 'E-posta zorunludur',
+      required: false, // İsteğe bağlı
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       patternMessage: 'Geçerli bir e-posta adresi giriniz'
     },
@@ -141,7 +140,14 @@ const EmployeesScreen = ({ navigation }) => {
     exitDate: {
       required: false, // Conditional validation yapacağız
       pattern: /^\d{2}-\d{2}-\d{4}$/,
-      patternMessage: 'Tarih DD-MM-YYYY formatında olmalıdır (örn: 31-12-2024)'
+      patternMessage: 'Tarih DD-MM-YYYY formatında olmalıdır (örn: 31-12-2024)',
+      custom: (value, allValues) => {
+        // Eğer çalışan pasifse ve exitDate boşsa hata ver
+        if (allValues.status === 'inactive' && (!value || value.trim() === '')) {
+          return 'Pasif çalışanlar için işten çıkış tarihi zorunludur';
+        }
+        return null;
+      }
     },
   });
 
@@ -223,14 +229,8 @@ const EmployeesScreen = ({ navigation }) => {
   const handleSaveEmployee = () => {
     const formData = employeeForm.values;
 
-    // Form validasyonu (önce genel validation)
+    // Form validasyonu (genel validation - custom validation dahil)
     if (!employeeForm.validateForm()) {
-      return;
-    }
-
-    // Conditional validation için exitDate'i required yap
-    if (formData.status === 'inactive' && !formData.exitDate.trim()) {
-      employeeForm.setError('exitDate', 'Pasif çalışanlar için işten çıkış tarihi zorunludur');
       return;
     }
 
@@ -570,7 +570,7 @@ const EmployeeForm = ({ form, onSave, onCancel, isEdit }) => {
 
       <View style={styles.formGroup}>
         <Input
-          label="E-posta *"
+          label="E-posta"
           value={form.values.email}
           onChangeText={(text) => form.setValue('email', text)}
           placeholder="ornek@email.com"

@@ -96,7 +96,7 @@ const PaymentPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+    <div className="flex-1 overflow-y-auto flex items-center justify-center p-4 bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-6">
           <div className="text-6xl mb-4">💳</div>

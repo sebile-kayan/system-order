@@ -208,9 +208,10 @@ const MainTabNavigator = () => {
   };
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
+    <View style={{ flex: 1, height: '100vh' }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopColor: '#e5e7eb',
@@ -246,8 +247,9 @@ const MainTabNavigator = () => {
         tabBarShowLabel: true,
       }}
     >
-      {getTabScreens()}
-    </Tab.Navigator>
+        {getTabScreens()}
+      </Tab.Navigator>
+    </View>
   );
 };
 

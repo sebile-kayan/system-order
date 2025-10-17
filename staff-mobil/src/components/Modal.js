@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
   },
   mediumModal: {
     maxWidth: 500,
+    maxHeight: '90%',
   },
   largeModal: {
     maxWidth: 800,

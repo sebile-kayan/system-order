@@ -79,7 +79,8 @@ const MenuPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-6xl mx-auto p-4 pb-20">
         <h2 className="text-3xl font-bold mb-8 text-center">EsSe Menü</h2>
         
         {/* Arama ve Filtreleme */}
@@ -195,6 +196,7 @@ const MenuPage = () => {
             </div>
           </div>
         )}
+      </div>
     </div>
   );
 };

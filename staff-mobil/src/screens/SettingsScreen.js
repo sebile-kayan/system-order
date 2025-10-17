@@ -49,6 +49,21 @@ const SettingsScreen = () => {
     phone: '',
   });
 
+  // İşletme bilgileri düzenleme modalı
+  const [showBusinessEditModal, setShowBusinessEditModal] = useState(false);
+  const [businessData, setBusinessData] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+  });
+  const [businessErrors, setBusinessErrors] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+  });
+
   // İşletme bilgileri modalı (sadece görüntüleme)
   const businessModal = useModal();
 
@@ -136,6 +151,78 @@ const SettingsScreen = () => {
     businessModal.openModal();
   };
 
+  const handleEditBusiness = () => {
+    // Mevcut işletme bilgilerini form'a yükle
+    setBusinessData({
+      name: business?.name || '',
+      address: business?.address || '',
+      phone: business?.phone || '',
+      email: business?.email || '',
+    });
+    setBusinessErrors({});
+    setShowBusinessEditModal(true);
+  };
+
+  const handleBusinessFieldChange = (field, value) => {
+    setBusinessData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+    
+    // Hata varsa temizle
+    if (businessErrors[field]) {
+      setBusinessErrors(prev => ({
+        ...prev,
+        [field]: '',
+      }));
+    }
+  };
+
+  const validateBusinessForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    if (!businessData.name.trim()) {
+      errors.name = 'İşletme adı zorunludur';
+      isValid = false;
+    }
+
+    if (!businessData.address.trim()) {
+      errors.address = 'Adres zorunludur';
+      isValid = false;
+    }
+
+    if (!businessData.phone.trim()) {
+      errors.phone = 'Telefon zorunludur';
+      isValid = false;
+    } else if (!/^[0-9\s\-\(\)]+$/.test(businessData.phone)) {
+      errors.phone = 'Geçerli bir telefon numarası giriniz';
+      isValid = false;
+    }
+
+    if (businessData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessData.email)) {
+      errors.email = 'Geçerli bir e-posta adresi giriniz';
+      isValid = false;
+    }
+
+    setBusinessErrors(errors);
+    return isValid;
+  };
+
+  const handleSaveBusiness = async () => {
+    if (!validateBusinessForm()) {
+      return;
+    }
+
+    try {
+      // TODO: API çağrısı yapılacak
+      Alert.alert('Başarılı', 'İşletme bilgileri güncellendi');
+      setShowBusinessEditModal(false);
+    } catch (error) {
+      Alert.alert('Hata', 'İşletme bilgileri güncellenirken bir hata oluştu');
+    }
+  };
+
 
   // Profil düzenleme fonksiyonları
   const handleEditProfile = () => {
@@ -181,12 +268,8 @@ const SettingsScreen = () => {
       hasError = true;
     }
 
-    // E-posta kontrolü
-    if (!profileData.email.trim()) {
-      newErrors.email = 'E-posta alanı zorunludur';
-      hasError = true;
-    } else {
-      // E-posta format kontrolü
+    // E-posta kontrolü (isteğe bağlı - sadece format kontrolü)
+    if (profileData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(profileData.email)) {
         newErrors.email = 'Geçerli bir e-posta adresi giriniz';
@@ -503,7 +586,7 @@ const SettingsScreen = () => {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>E-posta *</Text>
+            <Text style={styles.formLabel}>E-posta</Text>
             <TextInput
               style={[styles.formInput, profileErrors.email && styles.errorInput]}
               value={profileData.email}
@@ -521,6 +604,9 @@ const SettingsScreen = () => {
             {profileErrors.email && (
               <Text style={styles.formErrorText}>{profileErrors.email}</Text>
             )}
+            <Text style={styles.formHelpText}>
+              E-posta adresi isteğe bağlıdır
+            </Text>
           </View>
 
           <View style={styles.formGroup}>
@@ -566,10 +652,17 @@ const SettingsScreen = () => {
         primaryButtonText="Kapat"
         onPrimaryPress={businessModal.closeModal}
         primaryButtonStyle={styles.softBlueButton}
+        secondaryButtonText={hasRole('admin') ? "Düzenle" : null}
+        onSecondaryPress={hasRole('admin') ? handleEditBusiness : null}
+        secondaryButtonStyle={hasRole('admin') ? styles.editButton : null}
       >
         <View style={styles.businessInfoContainer}>
               
               <View style={styles.businessInfoContainer}>
+                <View style={styles.businessInfoItem}>
+                  <Text style={styles.businessInfoLabel}>İşletme Kodu</Text>
+                  <Text style={styles.businessInfoValue}>{business?.business_code || 'REST001'}</Text>
+                </View>
                 <View style={styles.businessInfoItem}>
                   <Text style={styles.businessInfoLabel}>İşletme Adı</Text>
                   <Text style={styles.businessInfoValue}>{business?.name || 'Belirtilmemiş'}</Text>
@@ -602,6 +695,80 @@ const SettingsScreen = () => {
 
               </View>
 
+        </View>
+      </Modal>
+
+      {/* İşletme Düzenleme Modalı */}
+      <Modal
+        visible={showBusinessEditModal}
+        onClose={() => setShowBusinessEditModal(false)}
+        title="İşletme Bilgilerini Düzenle"
+        size="large"
+        showCloseButton={false}
+        primaryButtonText="Kaydet"
+        onPrimaryPress={handleSaveBusiness}
+        secondaryButtonText="İptal"
+        onSecondaryPress={() => setShowBusinessEditModal(false)}
+        scrollable={true}
+      >
+        <View style={styles.formContainer}>
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>İşletme Adı *</Text>
+            <TextInput
+              style={[styles.formInput, businessErrors.name && styles.formInputError]}
+              value={businessData.name}
+              onChangeText={(value) => handleBusinessFieldChange('name', value)}
+              placeholder="İşletme adını giriniz"
+            />
+            {businessErrors.name && (
+              <Text style={styles.formErrorText}>{businessErrors.name}</Text>
+            )}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Adres *</Text>
+            <TextInput
+              style={[styles.formInput, styles.formTextArea, businessErrors.address && styles.formInputError]}
+              value={businessData.address}
+              onChangeText={(value) => handleBusinessFieldChange('address', value)}
+              placeholder="İşletme adresini giriniz"
+              multiline
+              numberOfLines={3}
+            />
+            {businessErrors.address && (
+              <Text style={styles.formErrorText}>{businessErrors.address}</Text>
+            )}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Telefon *</Text>
+            <TextInput
+              style={[styles.formInput, businessErrors.phone && styles.formInputError]}
+              value={businessData.phone}
+              onChangeText={(value) => handleBusinessFieldChange('phone', value)}
+              placeholder="Telefon numarasını giriniz"
+              keyboardType="phone-pad"
+            />
+            {businessErrors.phone && (
+              <Text style={styles.formErrorText}>{businessErrors.phone}</Text>
+            )}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>E-posta</Text>
+            <TextInput
+              style={[styles.formInput, businessErrors.email && styles.formInputError]}
+              value={businessData.email}
+              onChangeText={(value) => handleBusinessFieldChange('email', value)}
+              placeholder="E-posta adresini giriniz"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {businessErrors.email && (
+              <Text style={styles.formErrorText}>{businessErrors.email}</Text>
+            )}
+            <Text style={styles.formHelpText}>E-posta adresi isteğe bağlıdır</Text>
+          </View>
         </View>
       </Modal>
 
@@ -977,6 +1144,9 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     lineHeight: 22,
     fontWeight: '500',
+  },
+  editButton: {
+    backgroundColor: '#3b82f6',
   },
   closeButton: {
     backgroundColor: '#3b82f6',

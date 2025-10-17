@@ -172,6 +172,16 @@ const MenuScreen = () => {
       pattern: /^\d+$/,
       patternMessage: 'Geçerli bir süre giriniz'
     },
+    category_id: { 
+      required: true, 
+      requiredMessage: 'Kategori seçimi zorunludur',
+      custom: (value) => {
+        if (!value || value === null || value === '') {
+          return 'Kategori seçimi zorunludur';
+        }
+        return null;
+      }
+    },
   });
 
   const categoryForm = useForm({
@@ -181,6 +191,42 @@ const MenuScreen = () => {
     is_active: true,
   }, {
     name: { required: true, requiredMessage: 'Kategori adı zorunludur' },
+  });
+
+  // Ürün düzenleme için ayrı form
+  const editItemForm = useForm({
+    name: '',
+    description: '',
+    price: '',
+    preparation_time: '',
+    category_id: null,
+    image_url: '',
+    is_available: true,
+    is_vegetarian: false,
+  }, {
+    name: { required: true, requiredMessage: 'Ürün adı zorunludur' },
+    price: { 
+      required: true, 
+      requiredMessage: 'Fiyat zorunludur',
+      pattern: /^\d+(\.\d{1,2})?$/,
+      patternMessage: 'Geçerli bir fiyat giriniz'
+    },
+    preparation_time: { 
+      required: true, 
+      requiredMessage: 'Hazırlık süresi zorunludur',
+      pattern: /^\d+$/,
+      patternMessage: 'Geçerli bir süre giriniz'
+    },
+    category_id: { 
+      required: true, 
+      requiredMessage: 'Kategori seçimi zorunludur',
+      custom: (value) => {
+        if (!value || value === null || value === '') {
+          return 'Kategori seçimi zorunludur';
+        }
+        return null;
+      }
+    },
   });
 
   // Admin kontrolü
@@ -247,14 +293,16 @@ const MenuScreen = () => {
   const handleEditItem = (item) => {
     setEditingItem(item);
     setShowEditModal(true);
-    itemForm.setValue('name', item.name);
-    itemForm.setValue('description', item.description);
-    itemForm.setValue('price', item.price.toString());
-    itemForm.setValue('category_id', item.category_id);
-    itemForm.setValue('preparation_time', item.preparation_time.toString());
-    itemForm.setValue('is_available', item.is_available);
-    itemForm.setValue('is_vegetarian', item.is_vegetarian);
-    itemForm.setValue('image_url', item.image_url || '');
+    
+    // Edit form'unu doldur
+    editItemForm.setValue('name', item.name);
+    editItemForm.setValue('description', item.description);
+    editItemForm.setValue('price', item.price.toString());
+    editItemForm.setValue('category_id', item.category_id);
+    editItemForm.setValue('preparation_time', item.preparation_time.toString());
+    editItemForm.setValue('is_available', item.is_available);
+    editItemForm.setValue('is_vegetarian', item.is_vegetarian);
+    editItemForm.setValue('image_url', item.image_url || '');
     setNewItem({
       id: item.id,
       name: item.name || '',
@@ -277,13 +325,17 @@ const MenuScreen = () => {
 
   const handleSaveItem = () => {
     if (editingItem) {
-      // Edit modunda newItem state'ini kullan
+      // Edit modunda editItemForm validasyonu
+      if (!editItemForm.validateForm()) {
+        return;
+      }
+      
       const itemData = {
-        ...newItem,
+        ...editItemForm.values,
         id: editingItem.id,
-        price: isNaN(parseFloat(newItem.price)) ? 0 : parseFloat(newItem.price),
-        preparation_time: isNaN(parseInt(newItem.preparation_time)) ? 0 : parseInt(newItem.preparation_time),
-        category: categories.find(cat => cat.id === newItem.category_id)?.name || 'Ana Yemek',
+        price: isNaN(parseFloat(editItemForm.values.price)) ? 0 : parseFloat(editItemForm.values.price),
+        preparation_time: isNaN(parseInt(editItemForm.values.preparation_time)) ? 0 : parseInt(editItemForm.values.preparation_time),
+        category: categories.find(cat => cat.id === editItemForm.values.category_id)?.name || 'Ana Yemek',
       };
       
       setMenuItems(prevItems =>
@@ -291,6 +343,10 @@ const MenuScreen = () => {
       );
       setShowEditModal(false);
     } else {
+      // Yeni ekleme modunda itemForm validasyonu
+      if (!itemForm.validateForm()) {
+        return;
+      }
       // Yeni ekleme modunda itemForm state'ini kullan
       if (!itemForm.validateForm()) {
         return;
@@ -355,9 +411,12 @@ const MenuScreen = () => {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
       >
         {/* İstatistikler */}
         <View style={styles.statsSection}>
@@ -392,7 +451,22 @@ const MenuScreen = () => {
               icon="➕"
               variant="outline"
               size="small"
-              onPress={addModal.openModal}
+              onPress={() => {
+                // Formu temizle
+                itemForm.resetForm();
+                setNewItem({
+                  id: null,
+                  name: '',
+                  description: '',
+                  price: '',
+                  preparation_time: '',
+                  category_id: null,
+                  image_url: '',
+                  is_available: true,
+                  is_vegetarian: false,
+                });
+                addModal.openModal();
+              }}
               style={styles.actionButton}
             />
             <Button
@@ -551,7 +625,7 @@ const MenuScreen = () => {
       >
         <View style={styles.modalFormContainer}>
           <Input
-            label="Ürün Adı"
+            label="Ürün Adı *"
             value={itemForm.values.name}
             onChangeText={(text) => itemForm.setValue('name', text)}
             onBlur={() => itemForm.handleBlur('name')}
@@ -571,7 +645,7 @@ const MenuScreen = () => {
         <View style={styles.inputRow}>
           <View style={styles.inputGroupHalf}>
             <Input
-              label="Fiyat (₺)"
+              label="Fiyat (₺) *"
               value={itemForm.values.price}
               onChangeText={(text) => itemForm.setValue('price', text)}
               onBlur={() => itemForm.handleBlur('price')}
@@ -582,7 +656,7 @@ const MenuScreen = () => {
           </View>
           <View style={styles.inputGroupHalf}>
             <Input
-              label="Hazırlık Süresi (dk)"
+              label="Hazırlık Süresi (dk) *"
               value={itemForm.values.preparation_time}
               onChangeText={(text) => itemForm.setValue('preparation_time', text)}
               onBlur={() => itemForm.handleBlur('preparation_time')}
@@ -594,7 +668,7 @@ const MenuScreen = () => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Kategori</Text>
+          <Text style={styles.inputLabel}>Kategori *</Text>
           <View style={styles.categorySelector}>
             {categories.filter(cat => cat.isActive).map(category => (
               <Button
@@ -649,6 +723,7 @@ const MenuScreen = () => {
         title="Yeni Kategori Ekle"
         size="medium"
         showCloseButton={true}
+        scrollable={true}
         primaryButtonText="Kaydet"
         onPrimaryPress={handleSaveCategory}
         secondaryButtonText="İptal"
@@ -717,17 +792,19 @@ const MenuScreen = () => {
                 <View style={styles.inputGroup}>
                   <Input
                     label="Ürün Adı *"
-                    value={newItem.name}
-                    onChangeText={(text) => setNewItem({...newItem, name: text})}
+                    value={editItemForm.values.name}
+                    onChangeText={(text) => editItemForm.setValue('name', text)}
+                    onBlur={() => editItemForm.handleBlur('name')}
                     placeholder="Ürün adını girin"
+                    error={editItemForm.errors.name}
                   />
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Input
                     label="Açıklama"
-                    value={newItem.description}
-                    onChangeText={(text) => setNewItem({...newItem, description: text})}
+                    value={editItemForm.values.description}
+                    onChangeText={(text) => editItemForm.setValue('description', text)}
                     placeholder="Ürün açıklaması"
                     multiline
                     numberOfLines={3}
@@ -738,51 +815,51 @@ const MenuScreen = () => {
                   <View style={styles.inputGroupHalf}>
                     <Input
                       label="Fiyat (₺) *"
-                      value={newItem.price}
-                      onChangeText={(text) => setNewItem({...newItem, price: text})}
+                      value={editItemForm.values.price}
+                      onChangeText={(text) => editItemForm.setValue('price', text)}
+                      onBlur={() => editItemForm.handleBlur('price')}
                       placeholder="0.00"
                       keyboardType="numeric"
+                      error={editItemForm.errors.price}
                     />
                   </View>
                   <View style={styles.inputGroupHalf}>
                     <Input
                       label="Hazırlık Süresi (dk) *"
-                      value={newItem.preparation_time}
-                      onChangeText={(text) => setNewItem({...newItem, preparation_time: text})}
+                      value={editItemForm.values.preparation_time}
+                      onChangeText={(text) => editItemForm.setValue('preparation_time', text)}
+                      onBlur={() => editItemForm.handleBlur('preparation_time')}
                       placeholder="15"
                       keyboardType="numeric"
+                      error={editItemForm.errors.preparation_time}
                     />
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Kategori</Text>
+                  <Text style={styles.inputLabel}>Kategori *</Text>
                   <View style={styles.categorySelector}>
                     {categories.filter(cat => cat.isActive).map(category => (
-                      <TouchableOpacity
+                      <Button
                         key={category.id}
-                        style={[
-                          styles.categoryOption,
-                          newItem.category_id === category.id && styles.categoryOptionSelected
-                        ]}
-                        onPress={() => setNewItem({...newItem, category_id: category.id})}
-                      >
-                        <Text style={[
-                          styles.categoryOptionText,
-                          newItem.category_id === category.id && styles.categoryOptionTextSelected
-                        ]}>
-                          {category.name}
-                        </Text>
-                      </TouchableOpacity>
+                        title={category.name}
+                        variant={editItemForm.values.category_id === category.id ? "primary" : "outline"}
+                        size="small"
+                        onPress={() => editItemForm.setValue('category_id', category.id)}
+                        style={styles.categoryButton}
+                      />
                     ))}
                   </View>
+                  {editItemForm.errors.category_id && (
+                    <Text style={styles.formErrorText}>{editItemForm.errors.category_id}</Text>
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Input
                     label="Resim URL"
-                    value={newItem.image_url}
-                    onChangeText={(text) => setNewItem({...newItem, image_url: text})}
+                    value={editItemForm.values.image_url}
+                    onChangeText={(text) => editItemForm.setValue('image_url', text)}
                     placeholder="https://example.com/image.jpg"
                   />
                 </View>
@@ -791,8 +868,8 @@ const MenuScreen = () => {
                   <View style={styles.switchRow}>
                     <Text style={styles.switchLabel}>Mevcut</Text>
                     <Switch
-                      value={newItem.is_available}
-                      onValueChange={(value) => setNewItem({...newItem, is_available: value})}
+                      value={editItemForm.values.is_available}
+                      onValueChange={(value) => editItemForm.setValue('is_available', value)}
                       trackColor={{ false: Colors.border, true: Colors.success }}
                       thumbColor="#ffffff"
                     />
@@ -800,8 +877,8 @@ const MenuScreen = () => {
                   <View style={styles.switchRow}>
                     <Text style={styles.switchLabel}>🌱 Vejetaryen</Text>
                     <Switch
-                      value={newItem.is_vegetarian}
-                      onValueChange={(value) => setNewItem({...newItem, is_vegetarian: value})}
+                      value={editItemForm.values.is_vegetarian}
+                      onValueChange={(value) => editItemForm.setValue('is_vegetarian', value)}
                       trackColor={{ false: Colors.border, true: Colors.success }}
                       thumbColor="#ffffff"
                     />
@@ -817,6 +894,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    height: '100vh',
   },
   safeArea: {
     backgroundColor: Colors.background,
@@ -858,6 +936,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    height: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 200, // Bottom navigation için makul boşluk
   },
   statsSection: {
     padding: Spacing.screenPadding,
@@ -1096,6 +1179,10 @@ const styles = StyleSheet.create({
   },
   categoryOption: {
     marginBottom: Spacing.sm,
+  },
+  categoryButton: {
+    marginBottom: Spacing.sm,
+    marginRight: Spacing.sm,
   },
   // Switch Stilleri
   switchGroup: {

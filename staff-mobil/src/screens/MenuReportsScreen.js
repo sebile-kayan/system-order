@@ -320,6 +320,7 @@ const MenuReportsScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
       >
         {/* Dönem Seçimi */}
         <View style={styles.periodSection}>
@@ -384,6 +385,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    height: '100vh',
   },
   safeArea: {
     backgroundColor: '#f8fafc',
@@ -435,6 +437,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    height: '100%',
   },
   scrollContent: {
     flexGrow: 1,

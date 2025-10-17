@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   roleName: {
     ...Typography.styles.h4,
     color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   roleDescription: {
     ...Typography.styles.bodySmall,

@@ -19,7 +19,11 @@ const MenuStackNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: '#f8fafc' },
+        cardStyle: { 
+          backgroundColor: '#f8fafc',
+          height: '100vh',
+          flex: 1,
+        },
       }}
     >
       <Stack.Screen 

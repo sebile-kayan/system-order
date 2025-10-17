@@ -28,7 +28,7 @@ import { Link } from "react-router-dom";
 
 const OrderConfirmation = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="flex-1 overflow-y-auto bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow p-8 max-w-md w-full flex flex-col items-center">
           {/* Başarı İkonu */}
           <div className="mb-6">

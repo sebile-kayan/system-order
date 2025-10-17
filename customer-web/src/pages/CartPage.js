@@ -45,7 +45,7 @@ const CartPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="flex-1 overflow-y-auto flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <h2 className="text-2xl font-bold mb-6 text-center">Sepetiniz</h2>
         {cart.length === 0 ? (

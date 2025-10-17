@@ -38,9 +38,10 @@ function App() {
     <TableProvider>
       <CartProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
-            <Routes>
+            <div className="flex-1 overflow-y-auto">
+              <Routes>
               {/* Ana sayfa - Menü (Mock QR ile) */}
               <Route path="/" element={
                 <ProtectedRoute>
@@ -71,7 +72,8 @@ function App() {
                   <PaymentPage />
                 </ProtectedRoute>
               } />
-            </Routes>
+              </Routes>
+            </div>
             <PaymentButton />
             <InstallButton />
           </div>
