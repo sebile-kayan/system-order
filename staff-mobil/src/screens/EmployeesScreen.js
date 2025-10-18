@@ -16,7 +16,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { useAuth } from '../context/AuthRolesContext';
+import { useAuth, getRoleConfig } from '../context/AuthRolesContext';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
@@ -34,7 +34,7 @@ const EmployeesScreen = ({ navigation }) => {
     {
       id: 1,
       name: 'Ahmet Yılmaz',
-      role: 'chef',
+      roles: ['chef', 'admin'], // Çoklu rol desteği
       status: 'active',
       joinDate: '15-01-2023',
       exitDate: null,
@@ -44,7 +44,7 @@ const EmployeesScreen = ({ navigation }) => {
     {
       id: 2,
       name: 'Ayşe Demir',
-      role: 'waiter',
+      roles: ['waiter', 'cashier'], // Çoklu rol desteği
       status: 'active',
       joinDate: '20-02-2023',
       exitDate: null,
@@ -54,7 +54,7 @@ const EmployeesScreen = ({ navigation }) => {
     {
       id: 3,
       name: 'Mehmet Kaya',
-      role: 'cashier',
+      roles: ['cashier'],
       status: 'inactive',
       joinDate: '10-03-2023',
       exitDate: '15-01-2024',
@@ -64,7 +64,7 @@ const EmployeesScreen = ({ navigation }) => {
     {
       id: 4,
       name: 'Fatma Özkan',
-      role: 'waiter',
+      roles: ['waiter'],
       status: 'inactive',
       joinDate: '05-04-2023',
       exitDate: '01-02-2024',
@@ -84,7 +84,7 @@ const EmployeesScreen = ({ navigation }) => {
       const currentUserAdmin = {
         id: 'current-user',
         name: user.full_name || 'Mevcut Kullanıcı',
-        role: 'admin',
+        roles: user.roles || ['admin'], // Çoklu rol desteği
         status: 'active',
         joinDate: getTodayFormatted(),
         exitDate: null,
@@ -112,7 +112,7 @@ const EmployeesScreen = ({ navigation }) => {
   // Form hooks
   const employeeForm = useForm({
     name: '',
-    role: 'waiter',
+    roles: ['waiter'], // Çoklu rol desteği
     status: 'active',
     email: '',
     phone: '',
@@ -120,6 +120,16 @@ const EmployeesScreen = ({ navigation }) => {
     exitDate: '',
   }, {
     name: { required: true, requiredMessage: 'Ad soyad zorunludur' },
+    roles: {
+      required: true,
+      requiredMessage: 'En az bir rol seçmelisiniz',
+      custom: (value) => {
+        if (!value || value.length === 0) {
+          return 'En az bir rol seçmelisiniz';
+        }
+        return null;
+      }
+    },
     email: {
       required: false, // İsteğe bağlı
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -166,6 +176,10 @@ const EmployeesScreen = ({ navigation }) => {
     return roles[role] || 'Çalışan';
   };
 
+  const getRolesText = (roles) => {
+    return roles.map(role => getRoleText(role)).join(', ');
+  };
+
   const getStatusColor = (status) => {
     return status === 'active' ? Colors.success : Colors.error;
   };
@@ -199,7 +213,7 @@ const EmployeesScreen = ({ navigation }) => {
   const handleEditEmployee = (employee) => {
     // Form değerlerini tek tek set et
     employeeForm.setValue('name', employee.name);
-    employeeForm.setValue('role', employee.role);
+    employeeForm.setValue('roles', employee.roles || [employee.role] || ['waiter']); // Çoklu rol desteği
     employeeForm.setValue('status', employee.status);
     employeeForm.setValue('email', employee.email);
     employeeForm.setValue('phone', employee.phone);
@@ -338,19 +352,19 @@ const EmployeesScreen = ({ navigation }) => {
               <Text style={styles.statLabel}>Pasif Çalışan</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{employees.filter(e => e.role === 'waiter' && e.status === 'active').length}</Text>
+              <Text style={styles.statNumber}>{employees.filter(e => (e.roles || [e.role] || []).includes('waiter') && e.status === 'active').length}</Text>
               <Text style={styles.statLabel}>Garson</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{employees.filter(e => e.role === 'chef' && e.status === 'active').length}</Text>
+              <Text style={styles.statNumber}>{employees.filter(e => (e.roles || [e.role] || []).includes('chef') && e.status === 'active').length}</Text>
               <Text style={styles.statLabel}>Şef</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{employees.filter(e => e.role === 'cashier' && e.status === 'active').length}</Text>
+              <Text style={styles.statNumber}>{employees.filter(e => (e.roles || [e.role] || []).includes('cashier') && e.status === 'active').length}</Text>
               <Text style={styles.statLabel}>Kasiyer</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{employees.filter(e => e.role === 'admin' && e.status === 'active').length}</Text>
+              <Text style={styles.statNumber}>{employees.filter(e => (e.roles || [e.role] || []).includes('admin') && e.status === 'active').length}</Text>
               <Text style={styles.statLabel}>Yönetici</Text>
             </View>
           </View>
@@ -411,7 +425,17 @@ const EmployeesScreen = ({ navigation }) => {
                 <View style={styles.employeeHeader}>
                   <View style={styles.employeeInfo}>
                     <Text style={styles.employeeName}>{employee.name}</Text>
-                    <Text style={styles.employeeRole}>{getRoleText(employee.role)}</Text>
+                    <View style={styles.rolesContainer}>
+                      {(employee.roles || [employee.role] || []).map((role, index) => {
+                        const config = getRoleConfig(role);
+                        return (
+                          <View key={index} style={[styles.roleBadge, { backgroundColor: config.color }]}>
+                            <Text style={styles.roleIcon}>{config.icon}</Text>
+                            <Text style={styles.roleText}>{getRoleText(role)}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
                   <View style={styles.employeeActions}>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(employee.status) }]}>
@@ -477,6 +501,7 @@ const EmployeesScreen = ({ navigation }) => {
           onSave={handleSaveEmployee}
           onCancel={handleCancel}
           isEdit={true}
+          getRoleConfig={getRoleConfig}
         />
       </Modal>
 
@@ -498,6 +523,7 @@ const EmployeesScreen = ({ navigation }) => {
           onSave={handleSaveEmployee}
           onCancel={handleCancel}
           isEdit={false}
+          getRoleConfig={getRoleConfig}
         />
       </Modal>
     </View>
@@ -505,7 +531,7 @@ const EmployeesScreen = ({ navigation }) => {
 };
 
 // Çalışan Form Bileşeni
-const EmployeeForm = ({ form, onSave, onCancel, isEdit }) => {
+const EmployeeForm = ({ form, onSave, onCancel, isEdit, getRoleConfig }) => {
   const roles = [
     { key: 'admin', label: 'Yönetici' },
     { key: 'chef', label: 'Şef' },
@@ -537,19 +563,48 @@ const EmployeeForm = ({ form, onSave, onCancel, isEdit }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Rol</Text>
-        <View style={styles.radioGroup}>
-          {roles.map((role) => (
-            <Button
-              key={role.key}
-              title={role.label}
-              variant={form.values.role === role.key ? 'primary' : 'outline'}
-              size="small"
-              onPress={() => form.setValue('role', role.key)}
-              style={styles.radioButton}
-            />
-          ))}
+        <Text style={styles.formLabel}>Roller *</Text>
+        <Text style={styles.formHelpText}>Birden fazla rol seçebilirsiniz</Text>
+        <View style={styles.rolesGrid}>
+          {roles.map((role) => {
+            const isSelected = (form.values.roles || []).includes(role.key);
+            const config = getRoleConfig(role.key);
+            return (
+              <TouchableOpacity
+                key={role.key}
+                style={[
+                  styles.roleSelectCard,
+                  isSelected && { backgroundColor: config.color + '20', borderColor: config.color }
+                ]}
+                onPress={() => {
+                  const currentRoles = form.values.roles || [];
+                  if (isSelected) {
+                    // Rolü kaldır
+                    form.setValue('roles', currentRoles.filter(r => r !== role.key));
+                  } else {
+                    // Rolü ekle
+                    form.setValue('roles', [...currentRoles, role.key]);
+                  }
+                }}
+              >
+                <Text style={[
+                  styles.roleSelectText,
+                  isSelected && { color: config.color, fontWeight: 'bold' }
+                ]}>
+                  {role.label}
+                </Text>
+                {isSelected && (
+                  <View style={[styles.checkmark, { backgroundColor: config.color }]}>
+                    <Text style={styles.checkmarkText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
+        {form.errors.roles && (
+          <Text style={styles.errorText}>{form.errors.roles}</Text>
+        )}
       </View>
 
       <View style={styles.formGroup}>
@@ -922,6 +977,77 @@ const styles = StyleSheet.create({
     ...Typography.styles.caption,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.textSecondary,
+  },
+  // Çoklu rol stilleri
+  rolesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.radius.md,
+    marginRight: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  roleIcon: {
+    fontSize: 14,
+    marginRight: Spacing.xs,
+  },
+  roleText: {
+    ...Typography.styles.caption,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  // Rol seçim kartları
+  rolesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  roleSelectCard: {
+    width: '48%',
+    backgroundColor: Colors.gray50,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    position: 'relative',
+    minHeight: 50,
+  },
+  roleSelectText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    fontWeight: Typography.fontWeight.medium,
+  },
+  checkmark: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmarkText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  errorText: {
+    ...Typography.styles.caption,
+    color: Colors.error,
+    marginTop: Spacing.xs,
   },
 });
 

@@ -35,7 +35,8 @@ const MenuSettingsScreen = () => {
     toggleCategoryStatus, 
     reorderCategories,
     mergeCategories,
-    splitCategory 
+    splitCategory,
+    bulkUpdatePrices
   } = useCategory();
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('categories');
@@ -237,16 +238,32 @@ const MenuSettingsScreen = () => {
 
   // Fiyat Yönetimi Fonksiyonları
   const handleBulkPriceUpdate = () => {
+    if (bulkIncreasePercent <= 0) {
+      Alert.alert('Hata', 'Artış oranı 0\'dan büyük olmalıdır.');
+      return;
+    }
+
     Alert.alert(
       'Toplu Fiyat Güncelleme',
-      `Tüm ürünlerin fiyatını %${bulkIncreasePercent} artırmak istediğinizden emin misiniz?`,
+      `Tüm ürünlerin fiyatını %${bulkIncreasePercent} artırmak istediğinizden emin misiniz?\n\nBu işlem ${products.length} ürünü etkileyecek.`,
       [
         { text: 'İptal', style: 'cancel' },
         {
           text: 'Güncelle',
           onPress: () => {
-            Alert.alert('Başarılı', `Tüm ürünlerin fiyatı %${bulkIncreasePercent} artırıldı.`);
-            setShowBulkPriceModal(false);
+            // Gerçek fiyat güncelleme işlemi
+            bulkUpdatePrices(bulkIncreasePercent);
+            
+            Alert.alert(
+              'Başarılı', 
+              `Tüm ürünlerin fiyatı %${bulkIncreasePercent} artırıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
+              [
+                {
+                  text: 'Tamam',
+                  onPress: () => setShowBulkPriceModal(false)
+                }
+              ]
+            );
           },
         },
       ]
@@ -521,6 +538,15 @@ const MenuSettingsScreen = () => {
             <Text style={styles.modalDescription}>
               Tüm ürünlerin fiyatını %{bulkIncreasePercent} artıracaksınız.
             </Text>
+            
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                📊 Güncellenecek ürün sayısı: {products.length}
+              </Text>
+              <Text style={styles.infoSubtext}>
+                Örnek: 50₺ → {Math.round((50 * (1 + bulkIncreasePercent / 100)) * 100) / 100}₺
+              </Text>
+            </View>
             
             <View style={styles.warningBox}>
               <Text style={styles.warningText}>
@@ -1267,6 +1293,27 @@ const styles = StyleSheet.create({
   categorySelectTextSelected: {
     color: '#ffffff',
     fontWeight: '600',
+  },
+  infoBox: {
+    backgroundColor: '#eff6ff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1e40af',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  infoSubtext: {
+    fontSize: 12,
+    color: '#1e40af',
+    textAlign: 'center',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   warningBox: {
     backgroundColor: '#fef3c7',

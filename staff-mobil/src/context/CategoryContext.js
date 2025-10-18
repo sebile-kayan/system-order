@@ -287,6 +287,16 @@ export const CategoryProvider = ({ children }) => {
     return splitCategories;
   }, [categories]);
 
+  // Toplu fiyat güncelleme
+  const bulkUpdatePrices = useCallback((increasePercent) => {
+    setProducts(prevProducts => 
+      prevProducts.map(product => ({
+        ...product,
+        price: Math.round((product.price * (1 + increasePercent / 100)) * 100) / 100
+      }))
+    );
+  }, []);
+
   // Aktif kategorileri getir
   const getActiveCategories = useCallback(() => {
     return categories.filter(cat => cat.is_active).sort((a, b) => a.display_order - b.display_order);
@@ -303,6 +313,7 @@ export const CategoryProvider = ({ children }) => {
     reorderCategories,
     mergeCategories,
     splitCategory,
+    bulkUpdatePrices,
     getActiveCategories,
   };
 
