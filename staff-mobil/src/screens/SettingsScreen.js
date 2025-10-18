@@ -649,12 +649,13 @@ const SettingsScreen = () => {
         title="İşletme Bilgileri"
         size="medium"
         showCloseButton={false}
-        primaryButtonText="Kapat"
-        onPrimaryPress={businessModal.closeModal}
-        primaryButtonStyle={styles.softBlueButton}
-        secondaryButtonText={hasRole('admin') ? "Düzenle" : null}
-        onSecondaryPress={hasRole('admin') ? handleEditBusiness : null}
-        secondaryButtonStyle={hasRole('admin') ? styles.editButton : null}
+        primaryButtonText={hasRole('admin') ? "Düzenle" : null}
+        onPrimaryPress= {hasRole('admin') ? handleEditBusiness : null}
+        primaryButtonStyle= {hasRole('admin') ? styles.editButton : null}
+        secondaryButtonText="Kapat"
+        onSecondaryPress={businessModal.closeModal} 
+        secondaryButtonStyle={styles.softBlueButton}
+        scrollable={true}
       >
         <View style={styles.businessInfoContainer}>
               
@@ -1116,6 +1117,7 @@ const styles = StyleSheet.create({
   businessInfoContainer: {
     padding: Spacing.md,
     marginBottom: 5,
+    flex: 1,
   },
   softBlueButton: {
     backgroundColor: '#60a5fa', // Soft blue

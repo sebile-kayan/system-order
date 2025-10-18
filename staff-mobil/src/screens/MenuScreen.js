@@ -4,7 +4,7 @@
  * Bu ekran sadece admin rolündeki kullanıcılar için menü yönetimi sağlar.
  * Ürün ekleme, düzenleme, silme, fiyat güncelleme ve kategori yönetimi işlemlerini içerir.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
+import { useCategory } from '../context/CategoryContext';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -32,9 +33,11 @@ import useForm from '../hooks/useForm';
 
 const MenuScreen = () => {
   const { user, hasRole } = useAuth();
+  const { getActiveCategories, products, addCategory, addProduct } = useCategory();
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategories, setSelectedCategories] = useState(['all']); // Çoklu seçim için array
+  const [selectedAvailability, setSelectedAvailability] = useState('all'); // Mevcut/Mevcut Değil ayrı filtre
   const [searchTerm, setSearchTerm] = useState('');
   const [showVegetarianOnly, setShowVegetarianOnly] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -63,90 +66,21 @@ const MenuScreen = () => {
   const categoryModal = useModal();
   const editModal = useModal();
   
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Ana Yemek', isActive: true, display_order: 1 },
-    { id: 2, name: 'Çorba', isActive: true, display_order: 2 },
-    { id: 3, name: 'Meze', isActive: true, display_order: 3 },
-    { id: 4, name: 'Salata', isActive: true, display_order: 4 },
-    { id: 5, name: 'Tatlı', isActive: true, display_order: 5 },
-    { id: 6, name: 'Sıcak İçecek', isActive: true, display_order: 6 },
-    { id: 7, name: 'Soğuk İçecek', isActive: true, display_order: 7 },
-  ]);
+  // Kategoriler - Global context'ten al
+  const categories = getActiveCategories();
 
-  const [menuItems, setMenuItems] = useState([
-    {
-      id: 1,
-      name: 'Adana Kebab',
-      description: 'Acılı kıyma kebabı, pilav ve salata ile',
-      price: 55.00,
-      category_id: 1,
-      category: 'Ana Yemek',
-      is_available: true,
-      preparation_time: 15,
-      image_url: null,
-      is_vegetarian: false,
-    },
-    {
-      id: 2,
-      name: 'Margherita Pizza',
-      description: 'Domates, mozzarella ve fesleğenli pizza',
-      price: 45.00,
-      category_id: 1,
-      category: 'Ana Yemek',
-      is_available: true,
-      preparation_time: 20,
-      image_url: null,
-      is_vegetarian: true,
-    },
-    {
-      id: 3,
-      name: 'Cheeseburger',
-      description: 'Et köfte, peynir, marul ve domates',
-      price: 35.00,
-      category_id: 1,
-      category: 'Ana Yemek',
-      is_available: true,
-      preparation_time: 10,
-      image_url: null,
-      is_vegetarian: false,
-    },
-    {
-      id: 4,
-      name: 'Ayran',
-      description: 'Ev yapımı ayran',
-      price: 15.00,
-      category_id: 7,
-      category: 'Soğuk İçecek',
-      is_available: true,
-      preparation_time: 2,
-      image_url: null,
-      is_vegetarian: true,
-    },
-    {
-      id: 5,
-      name: 'Cola',
-      description: '330ml kutu kola',
-      price: 15.00,
-      category_id: 7,
-      category: 'Soğuk İçecek',
-      is_available: false,
-      preparation_time: 1,
-      image_url: null,
-      is_vegetarian: true,
-    },
-    {
-      id: 6,
-      name: 'Tiramisu',
-      description: 'İtalyan tatlısı',
-      price: 25.00,
-      category_id: 5,
-      category: 'Tatlı',
-      is_available: true,
-      preparation_time: 5,
-      image_url: null,
-      is_vegetarian: true,
-    },
-  ]);
+
+  // CategoryContext'ten gelen ürünleri kullan
+  const menuItems = products.map(product => ({
+    ...product,
+    // Eğer product'ta eksik alanlar varsa varsayılan değerler ekle
+    description: product.description || '',
+    price: product.price || 0,
+    is_available: product.is_available !== undefined ? product.is_available : true,
+    preparation_time: product.preparation_time || 0,
+    image_url: product.image_url || null,
+    is_vegetarian: product.is_vegetarian !== undefined ? product.is_vegetarian : false,
+  }));
 
   // Form hooks
   const itemForm = useForm({
@@ -257,12 +191,18 @@ const MenuScreen = () => {
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || 
-                           selectedCategory === 'available' ? item.is_available :
-                           selectedCategory === 'unavailable' ? !item.is_available :
-                           item.category === selectedCategory;
+    
+    // Kategori filtresi (çoklu seçim)
+    const matchesCategory = selectedCategories.includes('all') || 
+                           selectedCategories.includes(item.category);
+    
+    // Mevcut/Mevcut Değil filtresi (ayrı)
+    const matchesAvailability = selectedAvailability === 'all' ||
+                               (selectedAvailability === 'available' && item.is_available) ||
+                               (selectedAvailability === 'unavailable' && !item.is_available);
+    
     const matchesVegetarian = !showVegetarianOnly || item.is_vegetarian;
-    return matchesSearch && matchesCategory && matchesVegetarian;
+    return matchesSearch && matchesCategory && matchesAvailability && matchesVegetarian;
   });
 
   const handleToggleAvailability = (itemId) => {
@@ -360,7 +300,7 @@ const MenuScreen = () => {
         category: categories.find(cat => cat.id === itemForm.values.category_id)?.name || 'Ana Yemek',
       };
       
-      setMenuItems(prevItems => [...prevItems, itemData]);
+      addProduct(itemData);
       addModal.closeModal();
     }
 
@@ -378,27 +318,46 @@ const MenuScreen = () => {
       return;
     }
 
-    const categoryData = {
-      ...newCategory,
-      id: Date.now(),
-      isActive: newCategory.is_active,
-    };
-
-    setCategories(prev => [...prev, categoryData]);
+    addCategory(newCategory);
     setShowCategoryModal(false);
     setNewCategory({ name: '', description: '', is_active: true });
     setCategoryErrors({});
   };
 
+  // Kategori seçim fonksiyonu
+  const handleCategoryToggle = (categoryKey) => {
+    if (categoryKey === 'all') {
+      setSelectedCategories(['all']);
+    } else {
+      setSelectedCategories(prev => {
+        const newSelection = prev.filter(cat => cat !== 'all');
+        if (newSelection.includes(categoryKey)) {
+          // Kategoriyi kaldır
+          const filtered = newSelection.filter(cat => cat !== categoryKey);
+          return filtered.length === 0 ? ['all'] : filtered;
+        } else {
+          // Kategoriyi ekle
+          return [...newSelection, categoryKey];
+        }
+      });
+    }
+  };
+
   const categoryFilters = [
     { key: 'all', label: 'Tümü' },
-    { key: 'available', label: 'Mevcut' },
-    { key: 'unavailable', label: 'Mevcut Değil' },
-    ...categories.filter(cat => cat.isActive).map(cat => ({
+    ...categories.map(cat => ({
       key: cat.name,
       label: cat.name,
     })),
   ];
+
+  const availabilityFilters = [
+    { key: 'all', label: 'Tümü' },
+    { key: 'available', label: 'Mevcut' },
+    { key: 'unavailable', label: 'Mevcut Değil' },
+  ];
+
+
 
   return (
     <View style={styles.container}>
@@ -430,7 +389,7 @@ const MenuScreen = () => {
               <Text style={styles.statLabel}>Mevcut</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{categories.filter(cat => cat.isActive).length}</Text>
+              <Text style={styles.statNumber}>{categories.length}</Text>
               <Text style={styles.statLabel}>Kategori</Text>
             </View>
             <View style={styles.statCard}>
@@ -441,6 +400,7 @@ const MenuScreen = () => {
             </View>
           </View>
         </View>
+        <Text style={styles.filterTitle}></Text>
 
         {/* Hızlı İşlemler */}
         <Card style={styles.actionsSection}>
@@ -495,29 +455,55 @@ const MenuScreen = () => {
             />
           </View>
         </Card>
-
+        <Text style={styles.filterTitle}></Text>
         {/* Filtreler */}
-        <View style={styles.filterSection}>
+        <Card style={styles.filterSection}>
+          <Text style={styles.filterTitle}>Kategoriler</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
             {categoryFilters.map((filter) => (
               <TouchableOpacity
                 key={filter.key}
                 style={[
                   styles.filterButton,
-                  selectedCategory === filter.key && styles.filterButtonActive
+                  selectedCategories.includes(filter.key) && styles.filterButtonActive
                 ]}
-                onPress={() => setSelectedCategory(filter.key)}
+                onPress={() => handleCategoryToggle(filter.key)}
               >
                 <Text style={[
                   styles.filterButtonText,
-                  selectedCategory === filter.key && styles.filterButtonTextActive
+                  selectedCategories.includes(filter.key) && styles.filterButtonTextActive
                 ]}>
                   {filter.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
+          
+          {/* Ayırıcı çizgi */}
+          <View style={styles.separator} />
+          
+          {/* Durum Filtreleri - Kategorilerin altında */}
+          <Text style={styles.availabilityTitle}>Durum</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
+            {availabilityFilters.map((filter) => (
+                <TouchableOpacity
+                  key={filter.key}
+                  style={[
+                    styles.filterButton,
+                    selectedAvailability === filter.key && styles.availabilityButtonActive
+                  ]}
+                  onPress={() => setSelectedAvailability(filter.key)}
+                >
+                  <Text style={[
+                    styles.filterButtonText,
+                    selectedAvailability === filter.key && styles.availabilityButtonTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Card>
 
         {/* Arama ve Vejetaryen Filtresi */}
         <Card style={styles.searchSection}>
@@ -670,7 +656,7 @@ const MenuScreen = () => {
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Kategori *</Text>
           <View style={styles.categorySelector}>
-            {categories.filter(cat => cat.isActive).map(category => (
+            {categories.map(category => (
               <Button
                 key={category.id}
                 title={category.name}
@@ -839,7 +825,7 @@ const MenuScreen = () => {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Kategori *</Text>
                   <View style={styles.categorySelector}>
-                    {categories.filter(cat => cat.isActive).map(category => (
+                    {categories.map(category => (
                       <Button
                         key={category.id}
                         title={category.name}
@@ -989,12 +975,37 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   filterSection: {
-    padding: Spacing.screenPadding,
+    padding: Spacing.md,
     backgroundColor: Colors.surface,
-    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+    borderRadius: Spacing.radius.lg,
+  },
+  filterTitle: {
+    ...Typography.styles.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   filtersContainer: {
+    flexDirection: 'row',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.md,
+  },
+  availabilityTitle: {
+    ...Typography.styles.bodyMedium,
+    color: Colors.textSecondary,
     marginBottom: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  availabilityButtonActive: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  availabilityButtonTextActive: {
+    color: Colors.white,
   },
   filterButton: {
     paddingHorizontal: Spacing.lg,
@@ -1012,6 +1023,12 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
   filterButtonTextActive: {
+    color: Colors.white,
+  },
+  availabilityButtonActive: {
+    backgroundColor: Colors.success,
+  },
+  availabilityButtonTextActive: {
     color: Colors.white,
   },
   menuSection: {

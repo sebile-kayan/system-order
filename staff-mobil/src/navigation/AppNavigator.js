@@ -14,6 +14,12 @@ import LoginScreen from '../screens/LoginScreen';
 import RoleSelectorScreen from '../screens/RoleSelectorScreen';
 import CommonTabNavigator from './CommonTabNavigator';
 
+// Hızlı işlemler için ekranlar
+import MenuStackNavigator from './MenuStackNavigator';
+import TableManagementScreen from '../screens/TableManagementScreen';
+import EmployeesScreen from '../screens/EmployeesScreen';
+import ReportsScreen from '../screens/ReportsScreen';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -40,7 +46,30 @@ const AppNavigator = () => {
           <Stack.Screen name="RoleSelector" component={RoleSelectorScreen} />
         ) : (
           // Ana uygulama
-          <Stack.Screen name="Main" component={CommonTabNavigator} />
+          <>
+            <Stack.Screen name="Main" component={CommonTabNavigator} />
+            {/* Hızlı işlemler için ekranlar - tab'da görünmez */}
+            <Stack.Screen 
+              name="Menu" 
+              component={MenuStackNavigator} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="TableManagement" 
+              component={TableManagementScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Employees" 
+              component={EmployeesScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Reports" 
+              component={ReportsScreen} 
+              options={{ headerShown: false }}
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

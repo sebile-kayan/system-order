@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthRolesContext';
+import { CategoryProvider } from './src/context/CategoryContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 const theme = {
@@ -39,8 +40,10 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <AuthProvider>
-          <AppNavigator />
-          <StatusBar style="auto" />
+          <CategoryProvider>
+            <AppNavigator />
+            <StatusBar style="auto" />
+          </CategoryProvider>
         </AuthProvider>
       </PaperProvider>
     </SafeAreaProvider>
