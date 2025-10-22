@@ -194,7 +194,7 @@ const MainTabNavigator = () => {
   };
 
   return (
-    <View style={{ flex: 1, height: "100vh" }}>
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

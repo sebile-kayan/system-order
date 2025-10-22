@@ -1,10 +1,10 @@
 /**
  * WAITER DASHBOARD - Garson Ana Ekranı
- * 
+ *
  * Bu ekran garson rolündeki kullanıcılar için tasarlanmıştır. Masa durumu takibi,
  * sipariş teslimi, müşteri hizmetleri ve masa yönetimi araçlarına erişim sağlar.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,62 +13,122 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
-} from 'react-native';
-import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
-import { Colors } from '../../constants/Colors';
-import Header from '../../components/Header';
-import DailySummaryCard from '../../components/DailySummaryCard';
-import FastActionCard from '../../components/FastActionCard';
+} from "react-native";
+import {
+  useAuth,
+  getAvailableRoles,
+  getRoleConfig,
+} from "../../context/AuthRolesContext";
+import { Colors } from "../../constants/Colors";
+import Header from "../../components/Header";
+import DailySummaryCard from "../../components/DailySummaryCard";
 
 const WaiterDashboard = () => {
-  const { user, business, currentRole, hasRole, switchRole, logout } = useAuth();
+  const { user, business, currentRole, hasRole, switchRole, logout } =
+    useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("tables"); // 'tables' veya 'food'
   const [tables, setTables] = useState([
     {
       id: 1,
-      tableNumber: 'Masa 1',
-      isOccupied: true,
-      customerCount: 2,
-      orderStatus: 'served',
-      lastActivity: '5 dk önce',
-      orderItems: ['Margherita Pizza x1', 'Salata x1'],
+      tableNumber: "Masa 1",
+      status: "empty", // Resimdeki: Masa BOŞ
+      customerCount: 0,
+      lastActivity: "15 dk önce",
+      orderItems: [],
     },
     {
       id: 2,
-      tableNumber: 'Masa 2',
-      isOccupied: false,
-      customerCount: 0,
-      orderStatus: null,
-      paymentStatus: null,
-      lastActivity: '15 dk önce',
-      orderItems: [],
+      tableNumber: "Masa 2",
+      status: "occupied", // Resimdeki: Masa DOLU
+      customerCount: 2,
+      lastActivity: "5 dk önce",
+      orderItems: ["Margherita Pizza x1", "Salata x1"],
     },
     {
       id: 3,
-      tableNumber: 'Masa 3',
-      isOccupied: true,
+      tableNumber: "Masa 3",
+      status: "occupied", // Müşteri yemek yiyor
       customerCount: 4,
-      orderStatus: 'ready',
-      lastActivity: '2 dk önce',
-      orderItems: ['Adana Kebab x2', 'Ayran x2', 'Salata x1'],
+      lastActivity: "2 dk önce",
+      orderItems: ["Adana Kebab x2", "Ayran x2", "Salata x1"],
     },
     {
       id: 4,
-      tableNumber: 'Masa 4',
-      isOccupied: false,
-      customerCount: 0,
-      orderStatus: null,
-      lastActivity: '15 dk önce',
-      orderItems: [],
+      tableNumber: "Masa 4",
+      status: "payment_completed", // Resimdeki: Masa ÖDEME ALINDI
+      customerCount: 3,
+      lastActivity: "1 dk önce",
+      orderItems: ["Lahmacun x3", "Ayran x3"],
     },
     {
       id: 5,
-      tableNumber: 'Masa 5',
-      isOccupied: true,
-      customerCount: 3,
-      orderStatus: 'cleaning_needed',
-      lastActivity: '3 dk önce',
-      orderItems: ['Lahmacun x3', 'Ayran x3'],
+      tableNumber: "Masa 5",
+      status: "cleaning", // Resimdeki: Masa TEMİZLENDİ
+      customerCount: 2,
+      lastActivity: "3 dk önce",
+      orderItems: ["Pizza x2", "Kola x2"],
+    },
+  ]);
+
+  // Yemek durumu mock verileri
+  const [foodOrders, setFoodOrders] = useState([
+    {
+      id: 1,
+      tableNumber: "Masa 2",
+      orderId: "ORD-001",
+      items: [
+        {
+          name: "Margherita Pizza",
+          quantity: 1,
+          status: "ready",
+          time: "5 dk önce",
+        },
+        {
+          name: "Caesar Salata",
+          quantity: 1,
+          status: "preparing",
+          time: "3 dk önce",
+        },
+      ],
+      totalAmount: 125.5,
+      orderTime: "10 dk önce",
+      estimatedTime: "2 dk",
+    },
+    {
+      id: 2,
+      tableNumber: "Masa 3",
+      orderId: "ORD-002",
+      items: [
+        {
+          name: "Adana Kebab",
+          quantity: 2,
+          status: "ready",
+          time: "2 dk önce",
+        },
+        { name: "Ayran", quantity: 2, status: "ready", time: "1 dk önce" },
+        {
+          name: "Mevsim Salata",
+          quantity: 1,
+          status: "preparing",
+          time: "1 dk önce",
+        },
+      ],
+      totalAmount: 245.0,
+      orderTime: "15 dk önce",
+      estimatedTime: "1 dk",
+    },
+    {
+      id: 3,
+      tableNumber: "Masa 4",
+      orderId: "ORD-003",
+      items: [
+        { name: "Lahmacun", quantity: 3, status: "served", time: "5 dk önce" },
+        { name: "Ayran", quantity: 3, status: "served", time: "5 dk önce" },
+      ],
+      totalAmount: 180.0,
+      orderTime: "20 dk önce",
+      estimatedTime: "Teslim edildi",
     },
   ]);
 
@@ -81,89 +141,144 @@ const WaiterDashboard = () => {
   };
 
   const getTableStatusColor = (table) => {
-    if (!table.isOccupied) return Colors.gray500;
-    if (table.orderStatus === 'ready') return Colors.success;
-    if (table.orderStatus === 'served') return Colors.info;
-    if (table.orderStatus === 'cleaning_needed') return Colors.success;
-    return Colors.error;
+    switch (table.status) {
+      case "empty":
+        return Colors.gray500; // Boş Masalar: Gri renk
+      case "occupied":
+        return Colors.info; // Dolu Masalar: Mavi renk
+      case "payment_completed":
+        return Colors.warning; // Ödeme Alındı: Sarı renk
+      case "cleaning":
+        return Colors.success; // Temizlendi: Yeşil renk
+      default:
+        return Colors.gray500;
+    }
   };
 
   const getTableStatusText = (table) => {
-    if (!table.isOccupied) return 'Boş';
-    if (table.orderStatus === 'ready') return 'Sipariş Hazır';
-    if (table.orderStatus === 'served') return 'Teslim Edildi';
-    if (table.orderStatus === 'cleaning_needed') return 'Temizlik Gerekli';
-    return 'Bekliyor';
+    switch (table.status) {
+      case "empty":
+        return "Boş";
+      case "occupied":
+        return "Dolu";
+      case "payment_completed":
+        return "Ödeme Alındı";
+      case "cleaning":
+        return "Temizlendi";
+      default:
+        return "Bilinmiyor";
+    }
   };
 
   const getTableActionText = (table) => {
-    if (!table.isOccupied) return 'Masa Boş';
-    if (table.orderStatus === 'ready') return 'Siparişi Teslim Et';
-    if (table.orderStatus === 'served') return 'Teslim Edildi';
-    if (table.orderStatus === 'cleaning_needed') return 'Masayı Temizle';
-    return 'Bekliyor';
+    switch (table.status) {
+      case "empty":
+        return "DOLU İŞARETLE";
+      case "occupied":
+        return null; // Dolu masalarda buton yok, sadece durum gösterimi
+      case "payment_completed":
+        return "MÜŞTERİ KALKTI TEMİZLENDİ İŞARETLE";
+      case "cleaning":
+        return "BOŞ İŞARETLE";
+      default:
+        return "Bekliyor";
+    }
   };
 
   const handleTableAction = (table) => {
-    if (table.orderStatus === 'ready') {
+    if (table.status === "empty") {
+      // Resimdeki: Masa BOŞ → "Dolu işaretle" → Masa DOLU
       Alert.alert(
-        'Sipariş Teslimi',
-        `${table.tableNumber} siparişini teslim ettiniz mi?`,
+        "Masa Dolu İşaretle",
+        `${table.tableNumber} masasını dolu olarak işaretlemek istediğinizden emin misiniz?`,
         [
-          { text: 'İptal', style: 'cancel' },
+          { text: "İptal", style: "cancel" },
           {
-            text: 'Teslim Et',
+            text: "DOLU İŞARETLE",
             onPress: () => {
-              setTables(prevTables =>
-                prevTables.map(t =>
+              setTables((prevTables) =>
+                prevTables.map((t) =>
                   t.id === table.id
-                    ? { ...t, orderStatus: 'served', lastActivity: 'Şimdi' }
-                    : t
-                )
-              );
-            }
-          }
-        ]
-      );
-    } else if (table.orderStatus === 'cleaning_needed') {
-      Alert.alert(
-        'Masa Temizleme',
-        `${table.tableNumber} temizlenip boş olarak işaretlenecek mi?`,
-        [
-          { text: 'İptal', style: 'cancel' },
-          {
-            text: 'Temizle',
-            onPress: () => {
-              setTables(prevTables =>
-                prevTables.map(t =>
-                  t.id === table.id
-                    ? { 
-                        ...t, 
-                        isOccupied: false, 
-                        customerCount: 0, 
-                        orderStatus: null, 
-                        orderItems: [],
-                        lastActivity: 'Şimdi'
+                    ? {
+                        ...t,
+                        status: "occupied",
+                        customerCount: 1, // Varsayılan müşteri sayısı
+                        lastActivity: "Şimdi",
                       }
                     : t
                 )
               );
-            }
-          }
+            },
+          },
+        ]
+      );
+    } else if (table.status === "occupied") {
+      // Dolu masalarda hiçbir işlem yapılmaz, sadece durum gösterimi
+      return;
+    } else if (table.status === "payment_completed") {
+      // Resimdeki: Masa ÖDEME ALINDI → "Müşteri Kalktı temizlendi işaretle" → Masa TEMİZLENDİ
+      Alert.alert(
+        "Müşteri Kalktı Temizlendi İşaretle",
+        `${table.tableNumber} masasındaki müşteriler kalktı mı? Temizlik yapıldı mı?`,
+        [
+          { text: "İptal", style: "cancel" },
+          {
+            text: "MÜŞTERİ KALKTI TEMİZLENDİ İŞARETLE",
+            onPress: () => {
+              setTables((prevTables) =>
+                prevTables.map((t) =>
+                  t.id === table.id
+                    ? {
+                        ...t,
+                        status: "cleaning",
+                        lastActivity: "Şimdi",
+                      }
+                    : t
+                )
+              );
+            },
+          },
+        ]
+      );
+    } else if (table.status === "cleaning") {
+      // Resimdeki: Masa TEMİZLENDİ → "Boş işaretle" → Masa BOŞ
+      Alert.alert(
+        "Masa Boş İşaretle",
+        `${table.tableNumber} masası temizlendi mi? Masa boş olarak işaretlenecek.`,
+        [
+          { text: "İptal", style: "cancel" },
+          {
+            text: "BOŞ İŞARETLE",
+            onPress: () => {
+              setTables((prevTables) =>
+                prevTables.map((t) =>
+                  t.id === table.id
+                    ? {
+                        ...t,
+                        status: "empty",
+                        customerCount: 0,
+                        orderItems: [],
+                        lastActivity: "Şimdi",
+                      }
+                    : t
+                )
+              );
+            },
+          },
         ]
       );
     }
   };
 
   const roleButtons = [
-    { id: 'admin', name: 'Yönetici', icon: '👑', color: Colors.error },
-    { id: 'chef', name: 'Şef', icon: '👨‍🍳', color: Colors.warning },
-    { id: 'cashier', name: 'Kasiyer', icon: '💰', color: Colors.secondary },
+    { id: "admin", name: "Yönetici", icon: "👑", color: Colors.error },
+    { id: "chef", name: "Şef", icon: "👨‍🍳", color: Colors.warning },
+    { id: "cashier", name: "Kasiyer", icon: "💰", color: Colors.secondary },
   ];
 
   const availableRoles = useMemo(() => {
     if (!user?.roles) return [];
-    return roleButtons.filter(role => user.roles.includes(role.id));
+    return roleButtons.filter((role) => user.roles.includes(role.id));
   }, [user?.roles]);
 
   const handleLogout = () => {
@@ -171,9 +286,12 @@ const WaiterDashboard = () => {
     logout();
   };
 
-  const occupiedTables = tables.filter(table => table.isOccupied);
-  const emptyTables = tables.filter(table => !table.isOccupied);
-  const readyOrders = tables.filter(table => table.orderStatus === 'ready');
+  const occupiedTables = tables.filter((table) => table.status === "occupied");
+  const emptyTables = tables.filter((table) => table.status === "empty");
+  const paymentCompletedTables = tables.filter(
+    (table) => table.status === "payment_completed"
+  );
+  const cleaningTables = tables.filter((table) => table.status === "cleaning");
 
   return (
     <View style={styles.container}>
@@ -193,7 +311,7 @@ const WaiterDashboard = () => {
           onLogout={handleLogout}
           badgeText={getRoleConfig(currentRole)?.badgeText}
           badgeColor={getRoleConfig(currentRole)?.color}
-          sticky={false}  // Header kaydırıldıkça kaybolacak
+          sticky={false} // Header kaydırıldıkça kaybolacak
         />
 
         {/* Hızlı Rol Değiştirme */}
@@ -207,7 +325,7 @@ const WaiterDashboard = () => {
                   style={[
                     styles.roleSwitchButton,
                     { backgroundColor: role.color },
-                    currentRole === role.id && styles.activeRoleButton
+                    currentRole === role.id && styles.activeRoleButton,
                   ]}
                   onPress={() => switchRole(role.id)}
                 >
@@ -219,121 +337,460 @@ const WaiterDashboard = () => {
           </View>
         )}
 
-        {/* Servis Durumu */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Servis Durumu</Text>
-          <View style={styles.statsGrid}>
-            <DailySummaryCard 
-              number={occupiedTables.length} 
-              label="Dolu Masa" 
-              color={Colors.error}
-            />
-            <DailySummaryCard 
-              number={readyOrders.length} 
-              label="Hazır Sipariş" 
-              color={Colors.success}
-            />
-            <DailySummaryCard 
-              number={emptyTables.length} 
-              label="Boş Masa" 
-              color={Colors.gray500}
-            />
-            <DailySummaryCard 
-              number={tables.length} 
-              label="Toplam Masa" 
-              color={Colors.info}
-            />
-          </View>
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "tables" && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab("tables")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                activeTab === "tables" && styles.activeTabButtonText,
+              ]}
+            >
+              🪑 Masa Durumu
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "food" && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab("food")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                activeTab === "food" && styles.activeTabButtonText,
+              ]}
+            >
+              🍽️ Yemek Durumu
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Hazır Siparişler */}
-        {readyOrders.length > 0 && (
-          <View style={styles.urgentSection}>
-            <Text style={styles.sectionTitle}>🚨 Hazır Siparişler - Teslim Edilmeyi Bekliyor</Text>
-            {readyOrders.map((table) => (
-              <View key={table.id} style={styles.urgentCard}>
-                <View style={styles.urgentInfo}>
-                  <Text style={styles.urgentTableNumber}>{table.tableNumber}</Text>
-                  <Text style={styles.urgentTime}>{table.lastActivity}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.urgentButton}
-                  onPress={() => handleTableAction(table)}
-                >
-                  <Text style={styles.urgentButtonText}>Siparişi Teslim Et</Text>
-                </TouchableOpacity>
+        {/* Masa Durumu Tab */}
+        {activeTab === "tables" && (
+          <>
+            {/* Servis Durumu */}
+            <View style={styles.statsSection}>
+              <Text style={styles.sectionTitle}>Masa Durumu</Text>
+              <View style={styles.statsGrid}>
+                <DailySummaryCard
+                  number={occupiedTables.length}
+                  label="Dolu Masalar"
+                  color={Colors.info}
+                />
+                <DailySummaryCard
+                  number={paymentCompletedTables.length}
+                  label="Ödeme Alındı - Temizlik Bekliyor"
+                  color={Colors.warning}
+                />
+                <DailySummaryCard
+                  number={cleaningTables.length}
+                  label="Temizlik Yapılıyor"
+                  color={Colors.success}
+                />
+                <DailySummaryCard
+                  number={emptyTables.length}
+                  label="Boş Masalar"
+                  color={Colors.gray500}
+                />
               </View>
-            ))}
-          </View>
+            </View>
+
+            {/* Boş Masalar - EN ÜSTTE */}
+            {emptyTables.length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#f9fafb", borderLeftColor: "#6b7280" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#374151" }]}>
+                  🪑 Boş Masalar{" "}
+                </Text>
+                {emptyTables.map((table) => (
+                  <View
+                    key={table.id}
+                    style={[
+                      styles.urgentCard,
+                      { backgroundColor: "#f9fafb", borderColor: "#d1d5db" },
+                    ]}
+                  >
+                    <View style={styles.urgentInfo}>
+                      <Text
+                        style={[styles.urgentTableNumber, { color: "#374151" }]}
+                      >
+                        {table.tableNumber}
+                      </Text>
+                      <Text style={[styles.urgentTime, { color: "#374151" }]}>
+                        {table.lastActivity}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.urgentButton,
+                        { backgroundColor: "#6b7280" },
+                      ]}
+                      onPress={() => handleTableAction(table)}
+                    >
+                      <Text style={styles.urgentButtonText}>
+                        Müşteri geldi- Dolu işaretle
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Dolu Masalar - Sadece Bilgilendirme */}
+            {occupiedTables.length > 0 && (
+              <View style={styles.infoSection}>
+                <Text style={styles.sectionTitle}>🍽️ Dolu Masalar</Text>
+                {occupiedTables.map((table) => (
+                  <View key={table.id} style={styles.infoCard}>
+                    <View style={styles.infoHeader}>
+                      <Text style={styles.infoTableNumber}>
+                        {table.tableNumber}
+                      </Text>
+                      <Text style={styles.infoStatus}>
+                        Müşteri Masada- Müdahale Edilemez
+                      </Text>
+                    </View>
+                    <View style={styles.infoDetails}>
+                      <Text style={styles.infoText}>
+                        {table.customerCount} kişi • {table.lastActivity}
+                      </Text>
+                      {table.orderItems.length > 0 && (
+                        <Text style={styles.infoText}>
+                          Sipariş: {table.orderItems.join(", ")}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Ödeme Alındı Masalar - Resimdeki: Masa ÖDEME ALINDI */}
+            {paymentCompletedTables.length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#fef3c7", borderLeftColor: "#f59e0b" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#92400e" }]}>
+                  💰 Ödeme Alınmış Masalar
+                </Text>
+                {paymentCompletedTables.map((table) => (
+                  <View
+                    key={table.id}
+                    style={[
+                      styles.urgentCard,
+                      { backgroundColor: "#fef3c7", borderColor: "#fbbf24" },
+                    ]}
+                  >
+                    <View style={styles.urgentInfo}>
+                      <Text
+                        style={[styles.urgentTableNumber, { color: "#92400e" }]}
+                      >
+                        {table.tableNumber}
+                      </Text>
+                      <Text style={[styles.urgentTime, { color: "#92400e" }]}>
+                        {table.lastActivity}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.urgentButton,
+                        { backgroundColor: "#f59e0b" },
+                      ]}
+                      onPress={() => handleTableAction(table)}
+                    >
+                      <Text style={styles.urgentButtonText}>
+                        Müşteri kalktı - Temizlik yapılıyor işaretle
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Temizleniyor Masalar - Resimdeki: Masa TEMİZLENDİ */}
+            {cleaningTables.length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#f0fdf4", borderLeftColor: "#10b981" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#065f46" }]}>
+                  🧹 Temizlik Yapılan Masalar
+                </Text>
+                {cleaningTables.map((table) => (
+                  <View
+                    key={table.id}
+                    style={[
+                      styles.urgentCard,
+                      { backgroundColor: "#f0fdf4", borderColor: "#6ee7b7" },
+                    ]}
+                  >
+                    <View style={styles.urgentInfo}>
+                      <Text
+                        style={[styles.urgentTableNumber, { color: "#065f46" }]}
+                      >
+                        {table.tableNumber}
+                      </Text>
+                      <Text style={[styles.urgentTime, { color: "#065f46" }]}>
+                        {table.lastActivity}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.urgentButton,
+                        { backgroundColor: "#10b981" },
+                      ]}
+                      onPress={() => handleTableAction(table)}
+                    >
+                      <Text style={styles.urgentButtonText}>
+                        TEMİZLİK BİTTİ - MASA BOŞ İŞARETLE
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         )}
 
-        {/* Masa Listesi */}
-        <View style={styles.tablesSection}>
-          <Text style={styles.sectionTitle}>Masa Durumları</Text>
-          {tables.map((table) => (
-            <View key={table.id} style={styles.tableCard}>
-              <View style={styles.tableHeader}>
-                <View>
-                  <Text style={styles.tableNumber}>{table.tableNumber}</Text>
-                  <Text style={styles.tableInfo}>
-                    {table.isOccupied ? `${table.customerCount} kişi` : 'Boş'}
-                  </Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: getTableStatusColor(table) }
-                ]}>
-                  <Text style={styles.statusText}>{getTableStatusText(table)}</Text>
-                </View>
+        {/* Yemek Durumu Tab */}
+        {activeTab === "food" && (
+          <>
+            {/* Yemek Durumu İstatistikleri */}
+            <View style={styles.statsSection}>
+              <Text style={styles.sectionTitle}>Yemek Durumu</Text>
+              <View style={styles.statsGrid}>
+                <DailySummaryCard
+                  number={
+                    foodOrders.filter((order) =>
+                      order.items.some((item) => item.status === "ready")
+                    ).length
+                  }
+                  label="Hazır Sipariş"
+                  color={Colors.success}
+                />
+                <DailySummaryCard
+                  number={
+                    foodOrders.filter((order) =>
+                      order.items.some((item) => item.status === "preparing")
+                    ).length
+                  }
+                  label="Hazırlanıyor"
+                  color={Colors.warning}
+                />
+                <DailySummaryCard
+                  number={
+                    foodOrders.filter((order) =>
+                      order.items.every((item) => item.status === "served")
+                    ).length
+                  }
+                  label="Teslim Edildi"
+                  color={Colors.info}
+                />
+                <DailySummaryCard
+                  number={foodOrders.length}
+                  label="Toplam Sipariş"
+                  color={Colors.secondary}
+                />
               </View>
-
-              {table.isOccupied && (
-                <View style={styles.tableDetails}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Müşteri Sayısı:</Text>
-                    <Text style={styles.detailValue}>{table.customerCount} kişi</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Son Aktivite:</Text>
-                    <Text style={styles.detailValue}>{table.lastActivity}</Text>
-                  </View>
-                  {table.orderItems.length > 0 && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Siparişler:</Text>
-                      <Text style={styles.detailValue}>{table.orderItems.join(', ')}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: getTableStatusColor(table) }
-                ]}
-                onPress={() => handleTableAction(table)}
-              >
-                <Text style={styles.actionButtonText}>
-                  {getTableActionText(table)}
-                </Text>
-              </TouchableOpacity>
             </View>
-          ))}
-        </View>
 
-        {/* Garson Hızlı İşlemler */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-          <View style={styles.actionsGrid}>
-            <FastActionCard
-              title="Servis Raporu"
-              description="Günlük servis durumu"
-              icon="📊"
-              color={Colors.secondary}
-              onPress={() => {}}
-            />
-          </View>
-        </View>
+            {/* Hazır Siparişler */}
+            {foodOrders.filter((order) =>
+              order.items.some((item) => item.status === "ready")
+            ).length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#f0fdf4", borderLeftColor: "#10b981" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#065f46" }]}>
+                  ✅ Hazır Siparişler
+                </Text>
+                {foodOrders
+                  .filter((order) =>
+                    order.items.some((item) => item.status === "ready")
+                  )
+                  .map((order) => (
+                    <View
+                      key={order.id}
+                      style={[
+                        styles.urgentCard,
+                        { backgroundColor: "#f0fdf4", borderColor: "#6ee7b7" },
+                      ]}
+                    >
+                      <View style={styles.urgentInfo}>
+                        <Text
+                          style={[
+                            styles.urgentTableNumber,
+                            { color: "#065f46" },
+                          ]}
+                        >
+                          {order.tableNumber}
+                        </Text>
+                        <Text style={[styles.urgentTime, { color: "#065f46" }]}>
+                          Sipariş: {order.orderId}
+                        </Text>
+                      </View>
+                      <View style={styles.orderItems}>
+                        {order.items
+                          .filter((item) => item.status === "ready")
+                          .map((item, index) => (
+                            <Text
+                              key={index}
+                              style={[
+                                styles.orderItemText,
+                                { color: "#065f46" },
+                              ]}
+                            >
+                              ✓ {item.name} x{item.quantity}
+                            </Text>
+                          ))}
+                      </View>
+                      <TouchableOpacity
+                        style={[
+                          styles.urgentButton,
+                          { backgroundColor: "#10b981" },
+                        ]}
+                        onPress={() => {}}
+                      >
+                        <Text style={styles.urgentButtonText}>TESLİM ET</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+              </View>
+            )}
+
+            {/* Hazırlanan Siparişler */}
+            {foodOrders.filter((order) =>
+              order.items.some((item) => item.status === "preparing")
+            ).length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#fef3c7", borderLeftColor: "#f59e0b" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#92400e" }]}>
+                  ⏳ Hazırlanan Siparişler
+                </Text>
+                {foodOrders
+                  .filter((order) =>
+                    order.items.some((item) => item.status === "preparing")
+                  )
+                  .map((order) => (
+                    <View
+                      key={order.id}
+                      style={[
+                        styles.urgentCard,
+                        { backgroundColor: "#fef3c7", borderColor: "#fbbf24" },
+                      ]}
+                    >
+                      <View style={styles.urgentInfo}>
+                        <Text
+                          style={[
+                            styles.urgentTableNumber,
+                            { color: "#92400e" },
+                          ]}
+                        >
+                          {order.tableNumber}
+                        </Text>
+                        <Text style={[styles.urgentTime, { color: "#92400e" }]}>
+                          Tahmini: {order.estimatedTime}
+                        </Text>
+                      </View>
+                      <View style={styles.orderItems}>
+                        {order.items
+                          .filter((item) => item.status === "preparing")
+                          .map((item, index) => (
+                            <Text
+                              key={index}
+                              style={[
+                                styles.orderItemText,
+                                { color: "#92400e" },
+                              ]}
+                            >
+                              ⏳ {item.name} x{item.quantity}
+                            </Text>
+                          ))}
+                      </View>
+                    </View>
+                  ))}
+              </View>
+            )}
+
+            {/* Teslim Edilen Siparişler */}
+            {foodOrders.filter((order) =>
+              order.items.every((item) => item.status === "served")
+            ).length > 0 && (
+              <View
+                style={[
+                  styles.urgentSection,
+                  { backgroundColor: "#f0f9ff", borderLeftColor: "#3b82f6" },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: "#1e40af" }]}>
+                  ✅ Teslim Edilen Siparişler
+                </Text>
+                {foodOrders
+                  .filter((order) =>
+                    order.items.every((item) => item.status === "served")
+                  )
+                  .map((order) => (
+                    <View
+                      key={order.id}
+                      style={[
+                        styles.urgentCard,
+                        { backgroundColor: "#f0f9ff", borderColor: "#93c5fd" },
+                      ]}
+                    >
+                      <View style={styles.urgentInfo}>
+                        <Text
+                          style={[
+                            styles.urgentTableNumber,
+                            { color: "#1e40af" },
+                          ]}
+                        >
+                          {order.tableNumber}
+                        </Text>
+                        <Text style={[styles.urgentTime, { color: "#1e40af" }]}>
+                          Teslim: {order.estimatedTime}
+                        </Text>
+                      </View>
+                      <View style={styles.orderItems}>
+                        {order.items.map((item, index) => (
+                          <Text
+                            key={index}
+                            style={[styles.orderItemText, { color: "#1e40af" }]}
+                          >
+                            ✓ {item.name} x{item.quantity}
+                          </Text>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -347,14 +804,16 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     marginTop: 0,
+    height: '100%', // Web için height ekle
   },
   scrollContent: {
     paddingBottom: 180, // Bottom navigation için çok daha fazla boşluk
+    flexGrow: 1, // Web için flexGrow ekle
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     padding: 12,
     paddingHorizontal: 16,
     backgroundColor: Colors.surface,
@@ -368,8 +827,8 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     flexShrink: 0,
   },
@@ -382,11 +841,11 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   greeting: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.textPrimary,
     flexShrink: 1,
   },
@@ -405,7 +864,7 @@ const styles = StyleSheet.create({
   waiterBadgeText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   roleSwitchSection: {
     padding: 16,
@@ -416,27 +875,27 @@ const styles = StyleSheet.create({
   },
   roleSwitchTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textSecondary,
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   roleSwitchButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   roleSwitchButton: {
     flex: 1,
     marginHorizontal: 4,
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     opacity: 0.8,
   },
   activeRoleButton: {
     opacity: 1,
     transform: [{ scale: 1.05 }],
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
     elevation: 4,
   },
   roleSwitchIcon: {
@@ -446,11 +905,11 @@ const styles = StyleSheet.create({
   roleSwitchText: {
     color: Colors.white,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textPrimary,
     marginBottom: 16,
   },
@@ -460,45 +919,45 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   statCard: {
-    width: '48%',
+    width: "48%",
     backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.success,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
     color: Colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   urgentSection: {
     padding: 20,
-    backgroundColor: '#fef2f2',
+    backgroundColor: "#fef2f2",
     marginTop: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#dc2626',
+    borderLeftColor: "#dc2626",
   },
   urgentCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: Colors.surface,
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.1)",
     elevation: 2,
   },
   urgentInfo: {
@@ -506,8 +965,8 @@ const styles = StyleSheet.create({
   },
   urgentTableNumber: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#dc2626',
+    fontWeight: "600",
+    color: "#dc2626",
   },
   urgentTime: {
     fontSize: 12,
@@ -523,7 +982,7 @@ const styles = StyleSheet.create({
   urgentButtonText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   tablesSection: {
     padding: 20,
@@ -536,17 +995,17 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   tableNumber: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textPrimary,
   },
   tableInfo: {
@@ -562,17 +1021,17 @@ const styles = StyleSheet.create({
   statusText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   tableDetails: {
     marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
   },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   detailLabel: {
@@ -581,18 +1040,18 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     color: Colors.textPrimary,
   },
   actionButton: {
     paddingVertical: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   actionButtonText: {
     color: Colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   actionsSection: {
     padding: 20,
@@ -601,26 +1060,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   actionCard: {
-    width: '48%',
+    width: "48%",
     backgroundColor: Colors.gray50,
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   actionIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   actionIconText: {
@@ -628,15 +1087,89 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textPrimary,
     marginBottom: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   actionDescription: {
     fontSize: 12,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
+  },
+  infoSection: {
+    padding: 20,
+    backgroundColor: "#f0f9ff",
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3b82f6",
+  },
+  infoCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  infoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  infoTableNumber: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e40af",
+  },
+  infoStatus: {
+    fontSize: 12,
+    color: "#3b82f6",
+    fontWeight: "500",
+  },
+  infoDetails: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  infoText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: Colors.surface,
+    marginTop: 8,
+    borderRadius: 8,
+    padding: 4,
+    marginHorizontal: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  activeTabButton: {
+    backgroundColor: Colors.primary,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  activeTabButtonText: {
+    color: Colors.white,
+  },
+  orderItems: {
+    marginVertical: 8,
+  },
+  orderItemText: {
+    fontSize: 12,
+    marginBottom: 4,
   },
 });
 

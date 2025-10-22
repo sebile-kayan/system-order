@@ -18,12 +18,19 @@ import {
   Modal,
   Switch,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthRolesContext';
 import { useCategory } from '../context/CategoryContext';
 import { useNavigation } from '@react-navigation/native';
 import Input from '../components/Input';
 import { Colors } from '../constants/Colors';
+
+// Sadece web'de kullanılan ConfirmationModal expo için çağırılmadı.
+let ConfirmationModal = null;
+if (Platform.OS === 'web') {
+  ConfirmationModal = require('../components/ConfirmationModal').default;
+}
 
 const MenuSettingsScreen = () => {
   const { user, hasRole } = useAuth();
@@ -42,15 +49,17 @@ const MenuSettingsScreen = () => {
   const [activeTab, setActiveTab] = useState('categories');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fiyat Yönetimi - Sadece basit toplu güncelleme
+  // Fiyat Yönetimi - Toplu zam ve indirim
   const [bulkIncreasePercent, setBulkIncreasePercent] = useState(5);
+  const [bulkDecreasePercent, setBulkDecreasePercent] = useState(5);
 
 
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
-  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [showBulkIncreaseModal, setShowBulkIncreaseModal] = useState(false);
+  const [showBulkDecreaseModal, setShowBulkDecreaseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -60,6 +69,19 @@ const MenuSettingsScreen = () => {
   const [mergedCategoryName, setMergedCategoryName] = useState('');
   const [productAssignments, setProductAssignments] = useState({});
   
+  // Confirmation modal states
+  const [confirmationModal, setConfirmationModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    confirmText: 'Onayla',
+    cancelText: 'İptal',
+    type: 'default',
+    onConfirm: null,
+    onCancel: null,
+    isLoading: false,
+  });
+  
   // Kategori ekleme state'leri
   const [newCategory, setNewCategory] = useState({
     name: '',
@@ -67,6 +89,68 @@ const MenuSettingsScreen = () => {
     is_active: true,
   });
   const [categoryErrors, setCategoryErrors] = useState({});
+
+  // Confirmation modal helper functions - Sadece Web'de
+  const showConfirmation = (config) => {
+    if (Platform.OS !== 'web') return;
+    
+    // Web'de onay modalı açılırken diğer modalları kapat
+    setShowCategoryModal(false);
+    setShowMergeModal(false);
+    setShowSplitModal(false);
+    setShowBulkIncreaseModal(false);
+    setShowBulkDecreaseModal(false);
+    setShowDeleteModal(false);
+    
+    setConfirmationModal({
+      visible: true,
+      title: config.title || 'Onay',
+      message: config.message || '',
+      confirmText: config.confirmText || 'Onayla',
+      cancelText: config.cancelText || 'İptal',
+      type: config.type || 'default',
+      onConfirm: config.onConfirm || (() => {}),
+      onCancel: config.onCancel || (() => setConfirmationModal(prev => ({ ...prev, visible: false }))),
+      isLoading: false,
+    });
+  };
+
+  const hideConfirmation = () => {
+    if (Platform.OS !== 'web') return;
+    
+    setConfirmationModal(prev => ({ ...prev, visible: false }));
+    // Web'de onay modalı kapandığında diğer modalları da temizle
+    setShowCategoryModal(false);
+    setShowMergeModal(false);
+    setShowSplitModal(false);
+    setShowBulkIncreaseModal(false);
+    setShowBulkDecreaseModal(false);
+    setShowDeleteModal(false);
+  };
+
+  const handleConfirmationConfirm = async () => {
+    if (Platform.OS !== 'web') return;
+    
+    if (confirmationModal.onConfirm) {
+      setConfirmationModal(prev => ({ ...prev, isLoading: true }));
+      try {
+        await confirmationModal.onConfirm();
+        hideConfirmation();
+      } catch (error) {
+        console.error('Confirmation error:', error);
+        setConfirmationModal(prev => ({ ...prev, isLoading: false }));
+      }
+    }
+  };
+
+  const handleConfirmationCancel = () => {
+    if (Platform.OS !== 'web') return;
+    
+    if (confirmationModal.onCancel) {
+      confirmationModal.onCancel();
+    }
+    hideConfirmation();
+  };
 
   // Admin kontrolü
   if (!hasRole('admin')) {
@@ -104,32 +188,77 @@ const MenuSettingsScreen = () => {
 
   const handleMergeCategories = () => {
     if (selectedCategories.length < 2) {
-      Alert.alert('Hata', 'En az 2 kategori seçmelisiniz.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'En az 2 kategori seçmelisiniz.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'En az 2 kategori seçmelisiniz.');
+      }
       return;
     }
     
     if (!mergedCategoryName.trim()) {
-      Alert.alert('Hata', 'Birleşik kategori adı zorunludur.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'Birleşik kategori adı zorunludur.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'Birleşik kategori adı zorunludur.');
+      }
       return;
     }
     
-    Alert.alert(
-      'Kategori Birleştirme',
-      `Seçilen ${selectedCategories.length} kategoriyi "${mergedCategoryName}" olarak birleştirmek istediğinizden emin misiniz?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Birleştir',
-          onPress: () => {
-            mergeCategories(selectedCategories, mergedCategoryName);
-            Alert.alert('Başarılı', 'Kategoriler başarıyla birleştirildi.');
-            setShowMergeModal(false);
-            setSelectedCategories([]);
-            setMergedCategoryName('');
-          },
+    if (Platform.OS === 'web') {
+      showConfirmation({
+        title: 'Kategori Birleştirme',
+        message: `Seçilen ${selectedCategories.length} kategoriyi "${mergedCategoryName}" olarak birleştirmek istediğinizden emin misiniz?`,
+        confirmText: 'Birleştir',
+        cancelText: 'İptal',
+        type: 'default',
+        onConfirm: () => {
+          mergeCategories(selectedCategories, mergedCategoryName);
+          showConfirmation({
+            title: 'Başarılı',
+            message: 'Kategoriler başarıyla birleştirildi.',
+            confirmText: 'Tamam',
+            type: 'default',
+            onConfirm: () => {
+              setShowMergeModal(false);
+              setSelectedCategories([]);
+              setMergedCategoryName('');
+              hideConfirmation();
+            },
+          });
         },
-      ]
-    );
+      });
+    } else {
+      Alert.alert(
+        'Kategori Birleştirme',
+        `Seçilen ${selectedCategories.length} kategoriyi "${mergedCategoryName}" olarak birleştirmek istediğinizden emin misiniz?`,
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Birleştir',
+            onPress: () => {
+              mergeCategories(selectedCategories, mergedCategoryName);
+              Alert.alert('Başarılı', 'Kategoriler başarıyla birleştirildi.');
+              setShowMergeModal(false);
+              setSelectedCategories([]);
+              setMergedCategoryName('');
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleSplitCategory = () => {
@@ -137,7 +266,17 @@ const MenuSettingsScreen = () => {
     
     const validCategories = splitCategories.filter(name => name.trim());
     if (validCategories.length < 2) {
-      Alert.alert('Hata', 'En az 2 kategori adı girmelisiniz.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'En az 2 kategori adı girmelisiniz.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'En az 2 kategori adı girmelisiniz.');
+      }
       return;
     }
     
@@ -145,39 +284,171 @@ const MenuSettingsScreen = () => {
     setShowSplitModal(true);
   };
 
+  // Ürün atama işleminin tamamlanıp tamamlanmadığını kontrol et
+  const isProductAssignmentComplete = () => {
+    if (!categoryToSplit) return true;
+    
+    const productsInCategory = products.filter(product => product.category_id === categoryToSplit.id);
+    
+    // Eğer kategoride ürün yoksa tamamlanmış sayılır
+    if (productsInCategory.length === 0) return true;
+    
+    // Tüm ürünler için atama yapılmış mı kontrol et
+    return productsInCategory.every(product => productAssignments[product.id]);
+  };
+
   const confirmSplitCategory = () => {
     if (!categoryToSplit) return;
     
     const validCategories = splitCategories.filter(name => name.trim());
     if (validCategories.length < 2) {
-      Alert.alert('Hata', 'En az 2 kategori adı girmelisiniz.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'En az 2 kategori adı girmelisiniz.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'En az 2 kategori adı girmelisiniz.');
+      }
+      return;
+    }
+    
+    // Bölünen kategorideki ürünleri kontrol et
+    const productsInCategory = products.filter(product => product.category_id === categoryToSplit.id);
+    
+    if (productsInCategory.length === 0) {
+      // Eğer kategoride ürün yoksa direkt böl
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Kategori Bölme',
+          message: `"${categoryToSplit.name}" kategorisini ${validCategories.length} kategoriye bölmek istediğinizden emin misiniz?`,
+          confirmText: 'Böl',
+          cancelText: 'İptal',
+          type: 'default',
+          onConfirm: () => {
+            splitCategory(categoryToSplit.id, validCategories, []);
+            showConfirmation({
+              title: 'Başarılı',
+              message: 'Kategori başarıyla bölündü.',
+              confirmText: 'Tamam',
+              type: 'default',
+              onConfirm: () => {
+                setShowSplitModal(false);
+                setCategoryToSplit(null);
+                setSplitCategories(['', '']);
+                setProductAssignments({});
+                hideConfirmation();
+              },
+            });
+          },
+        });
+      } else {
+        Alert.alert(
+          'Kategori Bölme',
+          `"${categoryToSplit.name}" kategorisini ${validCategories.length} kategoriye bölmek istediğinizden emin misiniz?`,
+          [
+            { text: 'İptal', style: 'cancel' },
+            {
+              text: 'Böl',
+              onPress: () => {
+                splitCategory(categoryToSplit.id, validCategories, []);
+                Alert.alert('Başarılı', 'Kategori başarıyla bölündü.');
+                setShowSplitModal(false);
+                setCategoryToSplit(null);
+                setSplitCategories(['', '']);
+                setProductAssignments({});
+              },
+            },
+          ]
+        );
+      }
+      return;
+    }
+    
+    // Ürün atama kontrolü
+    const unassignedProducts = productsInCategory.filter(product => !productAssignments[product.id]);
+    const deletedProducts = productsInCategory.filter(product => productAssignments[product.id] === 'DELETE');
+    const assignedProducts = productsInCategory.filter(product => 
+      productAssignments[product.id] && productAssignments[product.id] !== 'DELETE'
+    );
+    
+    if (unassignedProducts.length > 0) {
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Eksik Ürün Ataması',
+          message: `Bölünen kategorideki ${unassignedProducts.length} ürün için yeni kategori seçmelisiniz veya ürünü silmelisiniz.\n\nAtanmamış ürünler:\n${unassignedProducts.map(p => `• ${p.name}`).join('\n')}`,
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert(
+          'Eksik Ürün Ataması',
+          `Bölünen kategorideki ${unassignedProducts.length} ürün için yeni kategori seçmelisiniz veya ürünü silmelisiniz.\n\nAtanmamış ürünler:\n${unassignedProducts.map(p => `• ${p.name}`).join('\n')}`
+        );
+      }
       return;
     }
     
     // Product assignments'ı hazırla
-    const assignments = Object.entries(productAssignments).map(([productId, categoryName]) => ({
-      productId: parseInt(productId),
-      categoryName: categoryName
-    }));
+    const assignments = Object.entries(productAssignments)
+      .filter(([productId, categoryName]) => categoryName !== 'DELETE')
+      .map(([productId, categoryName]) => ({
+        productId: parseInt(productId),
+        categoryName: categoryName
+      }));
     
-    Alert.alert(
-      'Kategori Bölme',
-      `"${categoryToSplit.name}" kategorisini ${validCategories.length} kategoriye bölmek istediğinizden emin misiniz?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Böl',
-          onPress: () => {
-            splitCategory(categoryToSplit.id, validCategories, assignments);
-            Alert.alert('Başarılı', 'Kategori başarıyla bölündü.');
-            setShowSplitModal(false);
-            setCategoryToSplit(null);
-            setSplitCategories(['', '']);
-            setProductAssignments({});
-          },
+    const deletedProductIds = Object.entries(productAssignments)
+      .filter(([productId, categoryName]) => categoryName === 'DELETE')
+      .map(([productId]) => parseInt(productId));
+    
+    if (Platform.OS === 'web') {
+      showConfirmation({
+        title: 'Kategori Bölme Onayı',
+        message: `"${categoryToSplit.name}" kategorisini ${validCategories.length} kategoriye bölmek istediğinizden emin misiniz?\n\n• ${assignedProducts.length} ürün yeni kategorilere atanacak\n• ${deletedProducts.length} ürün silinecek`,
+        confirmText: 'Böl',
+        cancelText: 'İptal',
+        type: 'default',
+        onConfirm: () => {
+          splitCategory(categoryToSplit.id, validCategories, assignments, deletedProductIds);
+          showConfirmation({
+            title: 'Başarılı',
+            message: 'Kategori başarıyla bölündü.',
+            confirmText: 'Tamam',
+            type: 'default',
+            onConfirm: () => {
+              setShowSplitModal(false);
+              setCategoryToSplit(null);
+              setSplitCategories(['', '']);
+              setProductAssignments({});
+              hideConfirmation();
+            },
+          });
         },
-      ]
-    );
+      });
+    } else {
+      Alert.alert(
+        'Kategori Bölme Onayı',
+        `"${categoryToSplit.name}" kategorisini ${validCategories.length} kategoriye bölmek istediğinizden emin misiniz?\n\n• ${assignedProducts.length} ürün yeni kategorilere atanacak\n• ${deletedProducts.length} ürün silinecek`,
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Böl',
+            onPress: () => {
+              splitCategory(categoryToSplit.id, validCategories, assignments, deletedProductIds);
+              Alert.alert('Başarılı', 'Kategori başarıyla bölündü.');
+              setShowSplitModal(false);
+              setCategoryToSplit(null);
+              setSplitCategories(['', '']);
+              setProductAssignments({});
+            },
+          },
+        ]
+      );
+    }
   };
 
   // Kategori Silme Fonksiyonları
@@ -188,7 +459,17 @@ const MenuSettingsScreen = () => {
 
   const confirmDeleteCategory = () => {
     if (categoriesToDelete.length === 0) {
-      Alert.alert('Hata', 'En az bir kategori seçmelisiniz.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'En az bir kategori seçmelisiniz.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'En az bir kategori seçmelisiniz.');
+      }
       return;
     }
     
@@ -196,26 +477,54 @@ const MenuSettingsScreen = () => {
       categories.find(cat => cat.id === id)?.name
     ).join(', ');
     
-    Alert.alert(
-      'Kategori Silme Onayı',
-      `Seçilen ${categoriesToDelete.length} kategoriyi silmek istediğinizden emin misiniz?\n\nSilinecek kategoriler: ${categoryNames}`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sil',
-          onPress: () => {
-            // Kategorileri sil
-            categoriesToDelete.forEach(categoryId => {
-              deleteCategory(categoryId);
-            });
-            
-            Alert.alert('Başarılı', `${categoriesToDelete.length} kategori başarıyla silindi.`);
-            setShowDeleteModal(false);
-            setCategoriesToDelete([]);
-          },
+    if (Platform.OS === 'web') {
+      showConfirmation({
+        title: 'Kategori Silme Onayı',
+        message: `Seçilen ${categoriesToDelete.length} kategoriyi silmek istediğinizden emin misiniz?\n\nSilinecek kategoriler: ${categoryNames}`,
+        confirmText: 'Sil',
+        cancelText: 'İptal',
+        type: 'danger',
+        onConfirm: () => {
+          // Kategorileri sil
+          categoriesToDelete.forEach(categoryId => {
+            deleteCategory(categoryId);
+          });
+          
+          showConfirmation({
+            title: 'Başarılı',
+            message: `${categoriesToDelete.length} kategori başarıyla silindi.`,
+            confirmText: 'Tamam',
+            type: 'default',
+            onConfirm: () => {
+              setShowDeleteModal(false);
+              setCategoriesToDelete([]);
+              hideConfirmation();
+            },
+          });
         },
-      ]
-    );
+      });
+    } else {
+      Alert.alert(
+        'Kategori Silme Onayı',
+        `Seçilen ${categoriesToDelete.length} kategoriyi silmek istediğinizden emin misiniz?\n\nSilinecek kategoriler: ${categoryNames}`,
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Sil',
+            onPress: () => {
+              // Kategorileri sil
+              categoriesToDelete.forEach(categoryId => {
+                deleteCategory(categoryId);
+              });
+              
+              Alert.alert('Başarılı', `${categoriesToDelete.length} kategori başarıyla silindi.`);
+              setShowDeleteModal(false);
+              setCategoriesToDelete([]);
+            },
+          },
+        ]
+      );
+    }
   };
 
   // Kategori Ekleme Fonksiyonları
@@ -233,41 +542,106 @@ const MenuSettingsScreen = () => {
     setShowCategoryModal(false);
     setNewCategory({ name: '', description: '', is_active: true });
     setCategoryErrors({});
-    Alert.alert('Başarılı', 'Kategori başarıyla eklendi.');
+    
+    if (Platform.OS === 'web') {
+      showConfirmation({
+        title: 'Başarılı',
+        message: 'Kategori başarıyla eklendi.',
+        confirmText: 'Tamam',
+        type: 'default',
+        onConfirm: () => hideConfirmation(),
+      });
+    } else {
+      Alert.alert('Başarılı', 'Kategori başarıyla eklendi.');
+    }
   };
 
   // Fiyat Yönetimi Fonksiyonları
-  const handleBulkPriceUpdate = () => {
+
+  const handleBulkIncrease = () => {
     if (bulkIncreasePercent <= 0) {
-      Alert.alert('Hata', 'Artış oranı 0\'dan büyük olmalıdır.');
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'Zam oranı 0\'dan büyük olmalıdır.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'Zam oranı 0\'dan büyük olmalıdır.');
+      }
       return;
     }
 
-    Alert.alert(
-      'Toplu Fiyat Güncelleme',
-      `Tüm ürünlerin fiyatını %${bulkIncreasePercent} artırmak istediğinizden emin misiniz?\n\nBu işlem ${products.length} ürünü etkileyecek.`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Güncelle',
-          onPress: () => {
-            // Gerçek fiyat güncelleme işlemi
-            bulkUpdatePrices(bulkIncreasePercent);
-            
-            Alert.alert(
-              'Başarılı', 
-              `Tüm ürünlerin fiyatı %${bulkIncreasePercent} artırıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
-              [
-                {
-                  text: 'Tamam',
-                  onPress: () => setShowBulkPriceModal(false)
-                }
-              ]
-            );
-          },
-        },
-      ]
-    );
+    // Direkt güncelleme yap
+    bulkUpdatePrices(bulkIncreasePercent);
+    
+    if (Platform.OS === 'web') {
+      // Web'de önce modal'ı kapat, sonra başarılı mesajını göster
+      setShowBulkIncreaseModal(false);
+      showConfirmation({
+        title: 'Başarılı',
+        message: `Tüm ürünlerin fiyatı %${bulkIncreasePercent} artırıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
+        confirmText: 'Tamam',
+        type: 'default',
+        onConfirm: () => hideConfirmation(),
+      });
+    } else {
+      Alert.alert(
+        'Başarılı', 
+        `Tüm ürünlerin fiyatı %${bulkIncreasePercent} artırıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
+        [
+          {
+            text: 'Tamam',
+            onPress: () => setShowBulkIncreaseModal(false)
+          }
+        ]
+      );
+    }
+  };
+
+  const handleBulkDecrease = () => {
+    if (bulkDecreasePercent <= 0) {
+      if (Platform.OS === 'web') {
+        showConfirmation({
+          title: 'Hata',
+          message: 'İndirim oranı 0\'dan büyük olmalıdır.',
+          confirmText: 'Tamam',
+          type: 'warning',
+          onConfirm: () => hideConfirmation(),
+        });
+      } else {
+        Alert.alert('Hata', 'İndirim oranı 0\'dan büyük olmalıdır.');
+      }
+      return;
+    }
+
+    // Negatif oran ile güncelleme yap (indirim)
+    bulkUpdatePrices(-bulkDecreasePercent);
+    
+    if (Platform.OS === 'web') {
+      // Web'de önce modal'ı kapat, sonra başarılı mesajını göster
+      setShowBulkDecreaseModal(false);
+      showConfirmation({
+        title: 'Başarılı',
+        message: `Tüm ürünlerin fiyatı %${bulkDecreasePercent} azaltıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
+        confirmText: 'Tamam',
+        type: 'default',
+        onConfirm: () => hideConfirmation(),
+      });
+    } else {
+      Alert.alert(
+        'Başarılı', 
+        `Tüm ürünlerin fiyatı %${bulkDecreasePercent} azaltıldı.\n\nGüncellenen ürün sayısı: ${products.length}`,
+        [
+          {
+            text: 'Tamam',
+            onPress: () => setShowBulkDecreaseModal(false)
+          }
+        ]
+      );
+    }
   };
 
 
@@ -359,11 +733,11 @@ const MenuSettingsScreen = () => {
         <Text style={styles.sectionTitle}>Fiyat Yönetimi</Text>
       </View>
 
-      {/* Toplu Fiyat Güncelleme */}
+      {/* Toplu Fiyat Zammı */}
       <View style={styles.section}>
-        <Text style={styles.subsectionTitle}>Toplu Fiyat Güncelleme</Text>
+        <Text style={styles.subsectionTitle}>Toplu Fiyat Zammı</Text>
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Artış Oranı (%):</Text>
+          <Text style={styles.settingLabel}>Zam Oranı (%):</Text>
           <TextInput
             style={styles.numberInput}
             value={bulkIncreasePercent.toString()}
@@ -373,9 +747,29 @@ const MenuSettingsScreen = () => {
         </View>
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => setShowBulkPriceModal(true)}
+          onPress={() => setShowBulkIncreaseModal(true)}
         >
-          <Text style={styles.primaryButtonText}>Toplu Fiyat Güncelle</Text>
+          <Text style={styles.primaryButtonText}>Toplu Fiyat Zammı</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Toplu Fiyat İndirimi */}
+      <View style={styles.section}>
+        <Text style={styles.subsectionTitle}>Toplu Fiyat İndirimi</Text>
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>İndirim Oranı (%):</Text>
+          <TextInput
+            style={styles.numberInput}
+            value={bulkDecreasePercent.toString()}
+            onChangeText={(text) => setBulkDecreasePercent(parseInt(text) || 0)}
+            keyboardType="numeric"
+          />
+        </View>
+        <TouchableOpacity 
+          style={[styles.primaryButton, styles.discountButton]}
+          onPress={() => setShowBulkDecreaseModal(true)}
+        >
+          <Text style={styles.primaryButtonText}>Toplu Fiyat İndirimi</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -524,54 +918,114 @@ const MenuSettingsScreen = () => {
       </Modal>
         )}
 
-      {/* Toplu Fiyat Güncelleme Modalı */}
-      {showBulkPriceModal && (
+      {/* Toplu Fiyat Zammı Modalı */}
+      {showBulkIncreaseModal && (
         <Modal
           visible={true}
           animationType="slide"
           transparent={true}
-          onRequestClose={() => setShowBulkPriceModal(false)}
+          onRequestClose={() => setShowBulkIncreaseModal(false)}
         >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Toplu Fiyat Güncelleme</Text>
-            <Text style={styles.modalDescription}>
-              Tüm ürünlerin fiyatını %{bulkIncreasePercent} artıracaksınız.
-            </Text>
-            
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                📊 Güncellenecek ürün sayısı: {products.length}
-              </Text>
-              <Text style={styles.infoSubtext}>
-                Örnek: 50₺ → {Math.round((50 * (1 + bulkIncreasePercent / 100)) * 100) / 100}₺
-              </Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Toplu Fiyat Zammı</Text>
             </View>
             
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>
-                ⚠️ Bu işlem geri alınamaz! Tüm ürünlerin fiyatı değişecek.
+            <View style={styles.modalFormContainer}>
+              <Text style={styles.modalDescription}>
+                Tüm ürünlerin fiyatını %{bulkIncreasePercent} artıracaksınız.
               </Text>
+              
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  📊 Güncellenecek ürün sayısı: {products.length}
+                </Text>
+                <Text style={styles.infoSubtext}>
+                  Örnek: 50₺ → {Math.round((50 * (1 + bulkIncreasePercent / 100)) * 100) / 100}₺
+                </Text>
+              </View>
+              
+              <View style={styles.warningBox}>
+                <Text style={styles.warningText}>
+                  ⚠️ Bu işlem geri alınamaz! Tüm ürünlerin fiyatı artacak.
+                </Text>
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowBulkPriceModal(false)}
+                onPress={() => setShowBulkIncreaseModal(false)}
               >
                 <Text style={styles.cancelButtonText}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.primaryButton}
-                onPress={handleBulkPriceUpdate}
+                onPress={handleBulkIncrease}
               >
-                <Text style={styles.primaryButtonText}>Güncelle</Text>
+                <Text style={styles.primaryButtonText}>Zam Yap</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
         )}
+
+      {/* Toplu Fiyat İndirimi Modalı */}
+      {showBulkDecreaseModal && (
+        <Modal
+          visible={true}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowBulkDecreaseModal(false)}
+        >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Toplu Fiyat İndirimi</Text>
+            </View>
+            
+            <View style={styles.modalFormContainer}>
+              <Text style={styles.modalDescription}>
+                Tüm ürünlerin fiyatını %{bulkDecreasePercent} azaltacaksınız.
+              </Text>
+              
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  📊 Güncellenecek ürün sayısı: {products.length}
+                </Text>
+                <Text style={styles.infoSubtext}>
+                  Örnek: 50₺ → {Math.round((50 * (1 - bulkDecreasePercent / 100)) * 100) / 100}₺
+                </Text>
+              </View>
+              
+              <View style={styles.warningBox}>
+                <Text style={styles.warningText}>
+                  ⚠️ Bu işlem geri alınamaz! Tüm ürünlerin fiyatı azalacak.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowBulkDecreaseModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, styles.discountButton]}
+                onPress={handleBulkDecrease}
+              >
+                <Text style={styles.primaryButtonText}>İndirim Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+        )}
+
 
         {/* Kategori Silme Modalı */}
         {showDeleteModal && (
@@ -764,7 +1218,7 @@ const MenuSettingsScreen = () => {
                         <View style={styles.separator} />
                         <Text style={styles.inputLabel}>Ürünleri Yeni Kategorilere Ata:</Text>
                         <Text style={styles.modalDescription}>
-                          Her ürünü hangi yeni kategoriye atamak istediğinizi seçin:
+                          Her ürünü hangi yeni kategoriye atamak istediğinizi seçin veya ürünü silin:
                         </Text>
                         
                         {products
@@ -799,6 +1253,31 @@ const MenuSettingsScreen = () => {
                                       </Text>
                                     </TouchableOpacity>
                                   ))}
+                                
+                                {/* Ürün Silme Butonu */}
+                                <TouchableOpacity
+                                  style={[
+                                    styles.categorySelectionButton,
+                                    styles.deleteProductButton,
+                                    productAssignments[product.id] === 'DELETE' && 
+                                    styles.deleteProductButtonSelected
+                                  ]}
+                                  onPress={() => {
+                                    setProductAssignments(prev => ({
+                                      ...prev,
+                                      [product.id]: 'DELETE'
+                                    }));
+                                  }}
+                                >
+                                  <Text style={[
+                                    styles.categorySelectionButtonText,
+                                    styles.deleteProductButtonText,
+                                    productAssignments[product.id] === 'DELETE' && 
+                                    styles.deleteProductButtonTextSelected
+                                  ]}>
+                                    🗑️ Sil
+                                  </Text>
+                                </TouchableOpacity>
                               </View>
                             </View>
                           ))}
@@ -821,9 +1300,12 @@ const MenuSettingsScreen = () => {
                 <Text style={styles.cancelButtonText}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.primaryButton, !categoryToSplit && styles.disabledButton]}
+                style={[
+                  styles.primaryButton, 
+                  (!categoryToSplit || !isProductAssignmentComplete()) && styles.disabledButton
+                ]}
                 onPress={confirmSplitCategory}
-                disabled={!categoryToSplit}
+                disabled={!categoryToSplit || !isProductAssignmentComplete()}
               >
                 <Text style={styles.primaryButtonText}>Böl</Text>
               </TouchableOpacity>
@@ -929,6 +1411,21 @@ const MenuSettingsScreen = () => {
         </View>
       </Modal>
         )}
+
+      {/* Confirmation Modal - Sadece Web'de */}
+      {Platform.OS === 'web' && ConfirmationModal && (
+        <ConfirmationModal
+          visible={confirmationModal.visible}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+          type={confirmationModal.type}
+          onConfirm={handleConfirmationConfirm}
+          onCancel={handleConfirmationCancel}
+          isLoading={confirmationModal.isLoading}
+        />
+      )}
     </View>
   );
 };
@@ -1218,6 +1715,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  discountButton: {
+    backgroundColor: '#10b981',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1225,6 +1725,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 40,
+    zIndex: 1000,
   },
   modalContent: {
     backgroundColor: '#ffffff',
@@ -1235,6 +1736,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)',
     elevation: 10,
+    zIndex: 1001,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1506,6 +2008,27 @@ const styles = StyleSheet.create({
   categorySelectionButtonTextSelected: {
     color: '#ffffff',
     fontWeight: '600',
+  },
+  deleteProductButton: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  deleteProductButtonSelected: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  deleteProductButtonText: {
+    color: '#dc2626',
+    fontWeight: '500',
+  },
+  deleteProductButtonTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 20,
   },
 });
 

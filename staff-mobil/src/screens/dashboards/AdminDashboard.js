@@ -13,16 +13,22 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useAuth, ROLE_BUTTONS, getAvailableRoles, getRoleConfig } from '../../context/AuthRolesContext';
 import { Colors } from '../../constants/Colors';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
 import FastActionCard from '../../components/FastActionCard';
+import Button from '../../components/Button';
 
 const AdminDashboard = ({ navigation }) => {
   const { user, business, hasRole, switchRole, logout, currentRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [showAddTableModal, setShowAddTableModal] = useState(false);
+  const [newTableNumber, setNewTableNumber] = useState('');
+  const [newTableCapacity, setNewTableCapacity] = useState('');
   const [stats, setStats] = useState({
     todayOrders: 45,
     todayRevenue: 2850.50,
@@ -30,12 +36,27 @@ const AdminDashboard = ({ navigation }) => {
     pendingOrders: 8,
   });
 
+
   const onRefresh = async () => {
     setRefreshing(true);
     // API'den güncel verileri çek
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
+  };
+
+  // Masa ekleme fonksiyonu
+  const handleAddTable = () => {
+    if (!newTableNumber.trim() || !newTableCapacity.trim()) {
+      Alert.alert('Hata', 'Lütfen masa numarası ve kapasite giriniz.');
+      return;
+    }
+
+    // Burada API çağrısı yapılacak
+    Alert.alert('Başarılı', 'Masa başarıyla eklendi.');
+    setNewTableNumber('');
+    setNewTableCapacity('');
+    setShowAddTableModal(false);
   };
 
   // Kullanıcının sahip olduğu rolleri al (admin hariç) - useMemo ile optimize edildi
@@ -125,6 +146,7 @@ const AdminDashboard = ({ navigation }) => {
           </View>
         )}
 
+
         {/* Günlük İstatistikler */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Günlük Özet</Text>
@@ -198,6 +220,56 @@ const AdminDashboard = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Masa Ekleme Modalı */}
+      <Modal
+        visible={showAddTableModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddTableModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Yeni Masa Ekle</Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Masa Numarası</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newTableNumber}
+                onChangeText={setNewTableNumber}
+                placeholder="Masa numarasını giriniz"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Kapasite</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newTableCapacity}
+                onChangeText={setNewTableCapacity}
+                placeholder="Kişi sayısını giriniz"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Button
+                title="İptal"
+                onPress={() => setShowAddTableModal(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+                textStyle={styles.cancelButtonText}
+              />
+              <Button
+                title="Ekle"
+                onPress={handleAddTable}
+                style={[styles.modalButton, styles.addButton]}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -210,9 +282,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     marginTop: 0,
+    height: '100%', // Web için height ekle
   },
   scrollContent: {
     paddingBottom: 120, // Bottom navigation için makul boşluk
+    flexGrow: 1, // Web için flexGrow ekle
   },
   header: {
     flexDirection: 'row',
@@ -505,6 +579,64 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 11,
     fontWeight: '600',
+  },
+  // Modal stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: Colors.gray50,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  cancelButton: {
+    backgroundColor: Colors.gray200,
+  },
+  cancelButtonText: {
+    color: Colors.textSecondary,
+  },
+  addButton: {
+    backgroundColor: Colors.primary,
   },
 });
 

@@ -243,7 +243,7 @@ export const CategoryProvider = ({ children }) => {
   }, [categories]);
 
   // Kategori bölme
-  const splitCategory = useCallback((categoryId, newCategories, productAssignments) => {
+  const splitCategory = useCallback((categoryId, newCategories, productAssignments = [], deletedProductIds = []) => {
     const originalCategory = categories.find(cat => cat.id === categoryId);
     if (!originalCategory) return;
     
@@ -262,8 +262,15 @@ export const CategoryProvider = ({ children }) => {
       return [...filtered, ...splitCategories].sort((a, b) => a.display_order - b.display_order);
     });
     
+    // Silinecek ürünleri kaldır
+    if (deletedProductIds && deletedProductIds.length > 0) {
+      setProducts(prevProducts => 
+        prevProducts.filter(product => !deletedProductIds.includes(product.id))
+      );
+    }
+    
     // Ürünleri yeni kategorilere ata
-    if (productAssignments) {
+    if (productAssignments && productAssignments.length > 0) {
       setProducts(prevProducts => 
         prevProducts.map(product => {
           if (product.category_id === categoryId) {

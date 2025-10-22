@@ -16,6 +16,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth, getRoleConfig } from '../context/AuthRolesContext';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -325,12 +326,10 @@ const EmployeesScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.safeArea}>
-        <View style={[styles.header, { paddingTop: 50 }]}>
-          <Text style={styles.headerTitle}>Çalışanlar</Text>
-          <Text style={styles.headerSubtitle}>Personel yönetimi ve bilgileri</Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Çalışanlar</Text>
+        <Text style={styles.headerSubtitle}>Personel yönetimi ve bilgileri</Text>
       </View>
 
       <ScrollView
@@ -526,7 +525,7 @@ const EmployeesScreen = ({ navigation }) => {
           getRoleConfig={getRoleConfig}
         />
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -681,6 +680,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    height: '100%', // Web için height ekle
   },
   safeArea: {
     backgroundColor: Colors.background,
@@ -702,9 +702,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    height: '100%', // Web için height ekle
   },
   scrollContent: {
     paddingBottom: 120, // Bottom navigation için makul boşluk
+    flexGrow: 1, // Web için flexGrow ekle
   },
   accessDenied: {
     flex: 1,

@@ -12,6 +12,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthRolesContext';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -231,12 +232,10 @@ const ReportsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.safeArea}>
-        <View style={[styles.header, { paddingTop: 50 }]}>
-          <Text style={styles.headerTitle}>Raporlar</Text>
-          <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Raporlar</Text>
+        <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
       </View>
 
       <ScrollView
@@ -316,7 +315,7 @@ const ReportsScreen = () => {
           </View>
         </Card>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -324,6 +323,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    height: '100%', // Web için height ekle
   },
   safeArea: {
     backgroundColor: Colors.background,
@@ -365,9 +365,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    height: '100%', // Web için height ekle
   },
   scrollContent: {
     paddingBottom: 120, // Bottom navigation için makul boşluk
+    flexGrow: 1, // Web için flexGrow ekle
   },
   periodSection: {
     padding: Spacing.screenPadding,

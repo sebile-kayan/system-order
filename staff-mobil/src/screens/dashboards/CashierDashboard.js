@@ -18,7 +18,6 @@ import { useAuth, getAvailableRoles, getRoleConfig } from '../../context/AuthRol
 import { Colors } from '../../constants/Colors';
 import Header from '../../components/Header';
 import DailySummaryCard from '../../components/DailySummaryCard';
-import FastActionCard from '../../components/FastActionCard';
 
 const CashierDashboard = () => {
   const { user, business, currentRole, hasRole, switchRole, logout } = useAuth();
@@ -27,21 +26,8 @@ const CashierDashboard = () => {
   const [tables, setTables] = useState([
     {
       id: 1,
-      tableNumber: 'Masa 1',
-      status: 'payment_requested', // Garson ödeme istedi
-      customerCount: 2,
-      amount: 125.50,
-      orderItems: [
-        { name: 'Margherita Pizza x1', price: 85.00 },
-        { name: 'Salata x1', price: 40.50 }
-      ],
-      orderTime: '25 dk önce',
-      paymentTime: null,
-    },
-    {
-      id: 2,
       tableNumber: 'Masa 3',
-      status: 'payment_completed', // Ödeme alındı, müşteriler hala masada
+      status: 'payment_waiting', // Müşteri KASİYERİ çağırdı, ödeme bekliyor
       customerCount: 4,
       amount: 245.00,
       orderItems: [
@@ -50,16 +36,19 @@ const CashierDashboard = () => {
         { name: 'Salata x1', price: 45.00 }
       ],
       orderTime: '30 dk önce',
-      paymentTime: '10 dk önce',
+      paymentTime: null,
     },
     {
-      id: 3,
-      tableNumber: 'Masa 5',
-      status: 'empty',
-      customerCount: 0,
-      amount: 0,
-      orderItems: [],
-      orderTime: null,
+      id: 2,
+      tableNumber: 'Masa 7',
+      status: 'payment_waiting', // Müşteri KASİYERİ çağırdı, ödeme bekliyor
+      customerCount: 2,
+      amount: 125.50,
+      orderItems: [
+        { name: 'Margherita Pizza x1', price: 85.00 },
+        { name: 'Salata x1', price: 40.50 }
+      ],
+      orderTime: '15 dk önce',
       paymentTime: null,
     },
   ]);
@@ -73,19 +62,21 @@ const CashierDashboard = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    // Mock verilerle çalışıyoruz, sadece loading simülasyonu
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
   };
 
   const handlePaymentComplete = (tableId) => {
+    // KASİYER: ÖDEME BEKLENİYOR → "Ödeme alındı işaretle" → Garson ekranına geçer
     Alert.alert(
-      'Ödeme Onayı',
-      'Bu masanın ödemesini tamamladığınızı onaylıyor musunuz?',
+      'Ödeme Alındı İşaretle',
+      'Bu masanın ödemesini tamamladığınızı onaylıyor musunuz? Ödeme alındıktan sonra masa garson ekranına düşecek.',
       [
         { text: 'İptal', style: 'cancel' },
         {
-          text: 'Ödemeyi Al',
+          text: 'ÖDEME ALINDI İŞARETLE',
           onPress: () => {
             setTables(prevTables =>
               prevTables.map(table =>
@@ -94,6 +85,12 @@ const CashierDashboard = () => {
                   : table
               )
             );
+            // Masa artık kasiyer ekranından çıkar, garson ekranına düşer
+            setTimeout(() => {
+              setTables(prevTables =>
+                prevTables.filter(table => table.id !== tableId)
+              );
+            }, 2000); // 2 saniye sonra kaldır
           }
         }
       ]
@@ -116,9 +113,8 @@ const CashierDashboard = () => {
     logout();
   };
 
-  const paymentRequestedTables = tables.filter(table => table.status === 'payment_requested');
-  const paymentCompletedTables = tables.filter(table => table.status === 'payment_completed');
-  const emptyTables = tables.filter(table => table.status === 'empty');
+  const paymentWaitingTables = tables.filter(table => table.status === 'payment_waiting');
+  const completedPayments = tables.filter(table => table.status === 'payment_completed');
 
   return (
     <View style={styles.container}>
@@ -179,8 +175,8 @@ const CashierDashboard = () => {
               color={Colors.info}
             />
             <DailySummaryCard 
-              number={dailyStats.pendingPayments} 
-              label="Bekleyen Ödeme" 
+              number={paymentWaitingTables.length} 
+              label="Ödeme Bekleniyor" 
               color={Colors.warning}
             />
             <DailySummaryCard 
@@ -191,15 +187,13 @@ const CashierDashboard = () => {
           </View>
         </View>
 
-        {/* Masa Durumları */}
+        {/* Ödeme Bekleniyor Masalar - Müşteri KASİYERİ çağırdı */}
         <View style={styles.tablesSection}>
-          <Text style={styles.sectionTitle}>🪑 Masa Durumları</Text>
-          
-          {/* Ödeme İstenen Masalar */}
-          {paymentRequestedTables.length > 0 && (
+   
+          {paymentWaitingTables.length > 0 ? (
             <View style={styles.tableGroup}>
-              <Text style={styles.groupTitle}>🚨 Ödeme İstenen Masalar</Text>
-              {paymentRequestedTables.map((table) => (
+              <Text style={styles.groupTitle}>💰 ÖDEME BEKLENİYOR ({paymentWaitingTables.length} adet)</Text>
+              {paymentWaitingTables.map((table) => (
                 <View key={table.id} style={styles.paymentCard}>
                   <View style={styles.tableHeader}>
                     <View>
@@ -227,62 +221,19 @@ const CashierDashboard = () => {
                     style={styles.paymentButton}
                     onPress={() => handlePaymentComplete(table.id)}
                   >
-                    <Text style={styles.paymentButtonText}>💳 Ödemeyi Al</Text>
+                    <Text style={styles.paymentButtonText}>💳 ÖDEME ALINDI İŞARETLE</Text>
                   </TouchableOpacity>
                 </View>
+
               ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>🎉 Şu anda ödeme bekleyen masa yok!</Text>
             </View>
           )}
-
-          {/* Ödeme Tamamlanan Masalar */}
-          {paymentCompletedTables.length > 0 && (
-            <View style={styles.tableGroup}>
-              <Text style={styles.groupTitle}>✅ Ödeme Alındı</Text>
-              {paymentCompletedTables.map((table) => (
-                <View key={table.id} style={styles.completedCard}>
-                  <View style={styles.tableHeader}>
-                    <View>
-                      <Text style={styles.completedTableNumber}>{table.tableNumber}</Text>
-                      <Text style={styles.completedInfo}>
-                        {table.customerCount} kişi • Ödeme: {table.paymentTime}
-                      </Text>
-                    </View>
-                    <View style={styles.amountContainer}>
-                      <Text style={styles.completedAmount}>₺{table.amount.toFixed(2)}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Boş Masalar */}
-          <View style={styles.tableGroup}>
-            <Text style={styles.groupTitle}>🆓 Boş Masalar ({emptyTables.length} adet)</Text>
-            <View style={styles.emptyTablesGrid}>
-              {emptyTables.map((table) => (
-                <View key={table.id} style={styles.emptyTableCard}>
-                  <Text style={styles.emptyTableNumber}>{table.tableNumber}</Text>
-                  <Text style={styles.emptyTableText}>Boş</Text>
-                </View>
-              ))}
-            </View>
-          </View>
         </View>
 
-        {/* Kasiyer Hızlı İşlemler */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-          <View style={styles.actionsGrid}>
-            <FastActionCard
-              title="Günlük Kasa Raporu"
-              description="Kasa raporu görüntüle"
-              icon="📊"
-              color={Colors.secondary}
-              onPress={() => {}}
-            />
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
@@ -296,9 +247,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     marginTop: 0,
+    height: '100%', // Web için height ekle
   },
   scrollContent: {
     paddingBottom: 120, // Bottom navigation için makul boşluk
+    flexGrow: 1, // Web için flexGrow ekle
   },
   header: {
     flexDirection: 'row',
@@ -597,48 +550,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  actionsSection: {
-    padding: 20,
-    backgroundColor: Colors.surface,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '48%',
-    backgroundColor: Colors.gray50,
-    padding: 16,
+  emptyState: {
+    backgroundColor: '#f0f9ff',
+    padding: 24,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#bae6fd',
   },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionIconText: {
-    fontSize: 20,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  actionDescription: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  emptyStateText: {
+    fontSize: 16,
+    color: '#0369a1',
+    fontWeight: '500',
     textAlign: 'center',
   },
 });

@@ -25,16 +25,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
+    minHeight: 80,
+    justifyContent: 'center',
   },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textSecondary,
     fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 14,
+    flexWrap: 'wrap',
   },
 });
 
