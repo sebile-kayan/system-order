@@ -2,17 +2,17 @@
  * QR CODE SERVICE - QR Kod Oluşturma ve Yönetimi   MOCK KODLARI KULLANILIYOR
  * 
  * Her masa için benzersiz QR kod oluşturur ve yönetir.
- * QR kod formatı: https://restoran.com/masa/{business_code}/{table_number}
+ * QR kod formatı: https://customer-web.com/masa/{business_code}/{table_number}
  * 
- * Örnek: https://restoran.com/masa/REST001/5
+ * Örnek: https://customer-web.com/masa/REST001/5
  */
 
 import { Alert } from 'react-native';
 
 // QR kod oluşturma fonksiyonu
 export const generateQRCode = (businessCode, tableNumber) => {
-  // QR kod formatı: https://restoran.com/masa/{business_code}/{table_number}
-  const qrCodeUrl = `https://restoran.com/masa/${businessCode}/${tableNumber}`;
+  // QR kod formatı: https://customer-web.com/masa/{business_code}/{table_number}
+  const qrCodeUrl = `https://customer-web.com/masa/${businessCode}/${tableNumber}`;
   return qrCodeUrl;
 };
 

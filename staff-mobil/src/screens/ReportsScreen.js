@@ -11,8 +11,11 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthRolesContext';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -21,6 +24,7 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 
 const ReportsScreen = () => {
+  const navigation = useNavigation();
   const { user, hasRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
@@ -234,6 +238,15 @@ const ReportsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {/* Web için geri düğmesi */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>← Geri</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Raporlar</Text>
         <Text style={styles.headerSubtitle}>İşletme performans analizi</Text>
       </View>
@@ -559,6 +572,20 @@ const styles = StyleSheet.create({
   actionCard: {
     width: '48%',
     marginBottom: Spacing.md,
+  },
+  // Web için geri düğmesi stilleri
+  backButton: {
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

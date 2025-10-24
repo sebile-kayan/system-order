@@ -44,6 +44,7 @@ const QRBarcode = ({
       {/* Gerçek QR Barkod */}
       <View style={styles.qrContainer}>
         <QRCode
+          key={qrCode} // QR kodu değiştiğinde component yeniden render edilir
           value={qrCode || 'https://restoran.com/masa/default'}
           size={size}
           color={Colors.black}

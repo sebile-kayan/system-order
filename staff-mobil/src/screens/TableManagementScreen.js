@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthRolesContext';
@@ -30,21 +31,145 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import QRBarcode from '../components/QRBarcode';
 import { generateQRCode, confirmQRCodeGeneration } from '../services/qrCodeService';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+// Platform-specific imports - expo-print removed due to web compatibility issues
 
 const TableManagementScreen = ({ navigation }) => {
   const { user, hasRole } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [tables, setTables] = useState([
-    { id: 1, table_number: '1', capacity: 4, status: 'empty', qr_code: 'https://restoran.com/masa/REST001/1', is_occupied: false, current_session_id: null, current_session: null },
-    { id: 2, table_number: '2', capacity: 2, status: 'occupied', qr_code: 'https://restoran.com/masa/REST001/2', is_occupied: true, current_session_id: 1, current_session: { id: 1, started_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(), guest_count: 2, is_active: true } },
-    { id: 3, table_number: '3', capacity: 6, status: 'payment_waiting', qr_code: 'https://restoran.com/masa/REST001/3', is_occupied: true, current_session_id: 2, current_session: { id: 2, started_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), guest_count: 4, is_active: true } },
-    { id: 4, table_number: '4', capacity: 4, status: 'payment_completed', qr_code: 'https://restoran.com/masa/REST001/4', is_occupied: false, current_session_id: null, current_session: null },
-    { id: 5, table_number: '5', capacity: 2, status: 'cleaning', qr_code: 'https://restoran.com/masa/REST001/5', is_occupied: false, current_session_id: null, current_session: null },
-    { id: 6, table_number: '6', capacity: 8, status: 'empty', qr_code: 'https://restoran.com/masa/REST001/6', is_occupied: false, current_session_id: null, current_session: null },
+    // MASA 1: BOŞ - Yeni müşteri alabilir
+    { 
+      id: 1, 
+      table_number: '1', 
+      capacity: 4, 
+      status: 'empty', 
+      qr_code: 'https://customer-web.com/masa/REST001/1', 
+      is_occupied: false, 
+      current_session_id: null, 
+      current_session: null,
+    },
+    
+    // MASA 2: DOLU - Müşteri yemek yiyor (25 dakikadır)
+    { 
+      id: 2, 
+      table_number: '2', 
+      capacity: 2, 
+      status: 'occupied', 
+      qr_code: 'https://customer-web.com/masa/REST001/2', 
+      is_occupied: true, 
+      current_session_id: 1, 
+      current_session: { 
+        id: 1, 
+        started_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(), 
+        guest_count: 2, 
+        is_active: true 
+      },
+    },
+    
+    // MASA 3: DOLU - Ödeme bekliyor (alt durum)
+    { 
+      id: 3, 
+      table_number: '3', 
+      capacity: 6, 
+      status: 'occupied', 
+      payment_status: 'payment_waiting', // Alt durum
+      qr_code: 'https://customer-web.com/masa/REST001/3', 
+      is_occupied: true, 
+      current_session_id: 2, 
+      current_session: { 
+        id: 2, 
+        started_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), 
+        guest_count: 4, 
+        is_active: true 
+      },
+    },
+    
+    // MASA 4: DOLU - Ödeme alındı (alt durum)
+    { 
+      id: 4, 
+      table_number: '4', 
+      capacity: 4, 
+      status: 'occupied', 
+      payment_status: 'payment_completed', // Alt durum
+      qr_code: 'https://customer-web.com/masa/REST001/4', 
+      is_occupied: true, 
+      current_session_id: 3, 
+      current_session: { 
+        id: 3, 
+        started_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), 
+        guest_count: 3, 
+        is_active: true 
+      },
+    },
+    
+    // MASA 5: TEMİZLİK - Müşteri kalktı, garson temizlik yapıyor
+    { 
+      id: 5, 
+      table_number: '5', 
+      capacity: 2, 
+      status: 'cleaning', 
+      qr_code: 'https://customer-web.com/masa/REST001/5', 
+      is_occupied: false, 
+      current_session_id: null, 
+      current_session: null,
+    },
+    
+    // MASA 6: BOŞ - Temizlik bitti, yeni müşteri alabilir
+    { 
+      id: 6, 
+      table_number: '6', 
+      capacity: 8, 
+      status: 'empty', 
+      qr_code: 'https://customer-web.com/masa/REST001/6', 
+      is_occupied: false, 
+      current_session_id: null, 
+      current_session: null,
+    },
+    
+    // MASA 7: DOLU - Uzun süreli müşteri (2 saat)
+    { 
+      id: 7, 
+      table_number: '7', 
+      capacity: 4, 
+      status: 'occupied', 
+      qr_code: 'https://customer-web.com/masa/REST001/7', 
+      is_occupied: true, 
+      current_session_id: 4, 
+      current_session: { 
+        id: 4, 
+        started_at: new Date(Date.now() - 120 * 60 * 1000).toISOString(), 
+        guest_count: 4, 
+        is_active: true 
+      },
+    },
+    
+    // MASA 8: DOLU - Ödeme bekliyor (uzun süre - 30 dakika)
+    { 
+      id: 8, 
+      table_number: '8', 
+      capacity: 6, 
+      status: 'occupied', 
+      payment_status: 'payment_waiting', // Alt durum
+      qr_code: 'https://customer-web.com/masa/REST001/8', 
+      is_occupied: true, 
+      current_session_id: 5, 
+      current_session: { 
+        id: 5, 
+        started_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(), 
+        guest_count: 6, 
+        is_active: true 
+      },
+    }
   ]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
+  const [showQRDownloadModal, setShowQRDownloadModal] = useState(false);
+  const [qrDownloadTable, setQrDownloadTable] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTableId, setDeleteTableId] = useState(null);
   const [newTable, setNewTable] = useState({
     tableNumber: '',
     capacity: 4,
@@ -67,87 +192,12 @@ const TableManagementScreen = ({ navigation }) => {
     );
   }
 
-  // Mock veriler (3 durum: boş, dolu, temizleniyor)
-  const mockTables = [
-    {
-      id: 1,
-      table_number: '1',
-      capacity: 4,
-      status: 'occupied',
-      is_occupied: true,
-      current_session_id: 1,
-      qr_code: 'QR001',
-      current_session: {
-        id: 1,
-        started_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(), // 25 dakika önce
-        guest_count: 2,
-        is_active: true,
-      },
-    },
-    {
-      id: 2,
-      table_number: '2',
-      capacity: 2,
-      status: 'empty',
-      is_occupied: false,
-      current_session_id: null,
-      qr_code: 'QR002',
-      current_session: null,
-    },
-    {
-      id: 3,
-      table_number: '3',
-      capacity: 6,
-      status: 'occupied', // Ödeme alındı ama masa hala dolu (garson temizleyecek)
-      is_occupied: true,
-      current_session_id: null, // Session sonlandırıldı
-      qr_code: 'QR003',
-      current_session: null,
-      needs_cleaning: true, // Temizlik gerekli işareti
-    },
-    {
-      id: 4,
-      table_number: '4',
-      capacity: 4,
-      status: 'occupied',
-      is_occupied: true,
-      current_session_id: 2,
-      qr_code: 'QR004',
-      current_session: {
-        id: 2,
-        started_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), // 45 dakika önce
-        guest_count: 4,
-        is_active: true,
-      },
-    },
-    {
-      id: 5,
-      table_number: '5',
-      capacity: 2,
-      status: 'cleaning', // Garson temizliyor
-      is_occupied: true,
-      current_session_id: null,
-      qr_code: 'QR005',
-      current_session: null,
-    },
-    {
-      id: 6,
-      table_number: '6',
-      capacity: 8,
-      status: 'empty',
-      is_occupied: false,
-      current_session_id: null,
-      qr_code: 'QR006',
-      current_session: null,
-    },
-  ];
-
   // Mock API fonksiyonları
   const fetchTables = async () => {
     try {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
-      setTables(mockTables);
+      // tables state'i zaten başlangıçta dolu, sadece refresh yapıyoruz
     } catch (error) {
       console.error('Masalar yüklenirken hata:', error);
       Alert.alert('Hata', 'Masalar yüklenirken bir hata oluştu.');
@@ -295,36 +345,22 @@ const TableManagementScreen = ({ navigation }) => {
 
   const getStatusColor = (status) => {
     const colors = {
-      empty: Colors.gray500,      // Gri - Boş
-      occupied: Colors.info,      // Mavi - Dolu
-      payment_waiting: Colors.warning,   // Sarı - Ödeme Bekliyor
-      payment_completed: Colors.warning, // Sarı - Ödeme Alındı
-      cleaning: Colors.success,   // Yeşil - Temizleniyor
+      empty: '#9CA3AF',          // Yumuşak gri - Boş
+      occupied: '#EF4444',      // Yumuşak kırmızı - Dolu
+      cleaning: '#10B981',      // Yumuşak yeşil - Temizleniyor
     };
-    return colors[status] || Colors.gray200;
+    return colors[status] || '#E5E7EB';
   };
 
   const getStatusText = (status) => {
     const texts = {
       empty: 'Boş',
       occupied: 'Dolu',
-      payment_waiting: 'Ödeme Bekliyor',
-      payment_completed: 'Ödeme Alındı',
-      cleaning: 'Temizlik',
+      cleaning: 'Temizleniyor',
     };
     return texts[status] || 'Bilinmiyor';
   };
 
-  const getStatusIcon = (status) => {
-    const icons = {
-      empty: '🪑',
-      occupied: '🍽️',
-      payment_waiting: '⏳',
-      payment_completed: '💰',
-      cleaning: '🧹',
-    };
-    return icons[status] || '❓';
-  };
 
 
   const handleAddTable = async () => {
@@ -365,18 +401,25 @@ const TableManagementScreen = ({ navigation }) => {
   };
 
   const handleRemoveTable = (tableId) => {
-    Alert.alert(
-      'Masa Sil',
-      'Bu masayı silmek istediğinizden emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: () => deleteTable(tableId)
-        }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      // Web'de modal göster
+      setDeleteTableId(tableId);
+      setShowDeleteModal(true);
+    } else {
+      // Mobil'de Alert kullan
+      Alert.alert(
+        'Masa Sil',
+        'Bu masayı silmek istediğinizden emin misiniz?',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Sil',
+            style: 'destructive',
+            onPress: () => deleteTable(tableId)
+          }
+        ]
+      );
+    }
   };
 
 
@@ -395,7 +438,11 @@ const TableManagementScreen = ({ navigation }) => {
     );
     setShowEditModal(false);
     setSelectedTable(null);
-    Alert.alert('Başarılı', 'Masa bilgileri güncellendi.');
+    if (Platform.OS === 'web') {
+      window.alert('Başarılı: Masa bilgileri güncellendi.');
+    } else {
+      Alert.alert('Başarılı', 'Masa bilgileri güncellendi.');
+    }
   };
 
   // Masa düzenleme modalını kapatma
@@ -406,6 +453,260 @@ const TableManagementScreen = ({ navigation }) => {
 
   const handleStatusChange = (tableId, newStatus) => {
     updateTableStatus(tableId, newStatus);
+  };
+
+  // QR Kod PDF İndirme
+  const handleDownloadQR = (table) => {
+    if (Platform.OS === 'web') {
+      // Web'de modal göster
+      setQrDownloadTable(table);
+      setShowQRDownloadModal(true);
+    } else {
+      // Mobil'de Alert kullan
+      Alert.alert(
+        'QR Kod İndir',
+        `Masa ${table.table_number} için QR kod PDF'ini indirmek istediğinizden emin misiniz?`,
+        [
+          { text: 'İptal', style: 'cancel' },
+          { 
+            text: 'İndir', 
+            onPress: () => {
+              downloadQRPDF(table);
+            }
+          }
+        ]
+      );
+    }
+  };
+
+  // QR Kod PDF İndirme Fonksiyonu
+  const downloadQRPDF = (table) => {
+    // Web'de PDF indirme
+    if (Platform.OS === 'web') {
+      const qrCodeUrl = table.qr_code || `https://customer-web.com/masa/REST001/${table.table_number}`;
+      
+      // HTML içeriği oluştur (QR kod ile)
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Masa ${table.table_number} QR Kod</title>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 20px;
+              background: white;
+            }
+            .qr-container {
+              border: 2px solid #333;
+              padding: 20px;
+              margin: 20px auto;
+              max-width: 400px;
+              background: white;
+            }
+            .qr-title {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              color: #333;
+            }
+            .qr-code {
+              margin: 20px 0;
+              display: flex;
+              justify-content: center;
+            }
+            .qr-url {
+              font-size: 12px;
+              color: #666;
+              word-break: break-all;
+              margin: 20px 0;
+              padding: 10px;
+              background: #f5f5f5;
+              border-radius: 5px;
+            }
+            .qr-instruction {
+              font-size: 16px;
+              color: #333;
+              margin-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="qr-title">Masa ${table.table_number}</div>
+            <div class="qr-code">
+              <canvas id="qrcode"></canvas>
+            </div>
+            <div class="qr-url">${qrCodeUrl}</div>
+            <div class="qr-instruction">
+              Müşteri bu QR kodu okutarak menüye erişebilir
+            </div>
+          </div>
+          
+          <script>
+            // QR kod oluştur
+            QRCode.toCanvas(document.getElementById('qrcode'), '${qrCodeUrl}', {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            }, function (error) {
+              if (error) console.error(error);
+            });
+          </script>
+        </body>
+        </html>
+      `;
+      
+      // Blob oluştur ve indir
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Masa_${table.table_number}_QR_Kod.html`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      Alert.alert('Başarılı', 'QR kod dosyası indirildi.');
+    } else {
+      // Mobil'de QR kod indirme
+      downloadQRForMobile(table);
+    }
+  };
+
+  // Mobil'de QR kod indirme fonksiyonu
+  const downloadQRForMobile = async (table) => {
+    try {
+      const qrCodeUrl = table.qr_code || `https://customer-web.com/masa/REST001/${table.table_number}`;
+      
+      // QR kod için HTML içeriği oluştur (PDF için)
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>QR Kod - Masa ${table.table_number}</title>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 40px; 
+              background: white;
+              margin: 0;
+            }
+            .container { 
+              background: white; 
+              padding: 40px; 
+              border: 2px solid #333;
+              max-width: 400px;
+              margin: 0 auto;
+            }
+            h1 { 
+              color: #333; 
+              margin-bottom: 30px; 
+              font-size: 24px;
+            }
+            .info { 
+              background: #f8f9fa; 
+              padding: 20px; 
+              border: 1px solid #ddd;
+              margin-top: 30px;
+            }
+            .info p { 
+              margin: 8px 0; 
+              color: #666; 
+              font-size: 14px;
+            }
+            .qr-text { 
+              font-family: monospace; 
+              background: #000; 
+              color: #fff; 
+              padding: 15px; 
+              border-radius: 5px; 
+              word-break: break-all;
+              margin: 30px 0;
+              font-size: 12px;
+            }
+            .qr-code {
+              margin: 20px 0;
+              padding: 20px;
+              border: 1px solid #ddd;
+              background: #f9f9f9;
+            }
+            .qr-code-text {
+              font-family: monospace;
+              font-size: 10px;
+              color: #666;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Masa ${table.table_number} QR Kodu</h1>
+            
+            <div class="qr-code">
+              <div style="font-size: 18px; margin-bottom: 10px;">QR Kod:</div>
+              <div class="qr-text">${qrCodeUrl}</div>
+            </div>
+            
+            <div class="info">
+              <p><strong>Masa Numarası:</strong> ${table.table_number}</p>
+              <p><strong>İşletme Kodu:</strong> REST001</p>
+              <p><strong>Kapasite:</strong> ${table.capacity} kişi</p>
+              <p><strong>QR Kod URL:</strong></p>
+              <div class="qr-code-text">${qrCodeUrl}</div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Platform kontrolü
+      if (Platform.OS === 'web') {
+        // Web'de HTML dosyası oluştur
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Masa_${table.table_number}_QR_Kod.html`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        window.alert('Başarılı: QR kod dosyası indirildi.');
+      } else {
+        // Mobil'de HTML dosyası oluştur ve paylaş
+        const fileName = `Masa_${table.table_number}_QR_Kod.html`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+        
+        // HTML dosyasını yaz
+        await FileSystem.writeAsStringAsync(fileUri, htmlContent, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        
+        // Dosyayı paylaş
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/html',
+            dialogTitle: `Masa ${table.table_number} QR Kodu`,
+          });
+        } else {
+          Alert.alert('Hata', 'Dosya paylaşımı desteklenmiyor.');
+        }
+      }
+      
+    } catch (error) {
+      console.error('QR kod indirme hatası:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Hata: QR kod indirilemedi.');
+      } else {
+        Alert.alert('Hata', 'QR kod indirilemedi.');
+      }
+    }
   };
 
   // Admin yetkisi kontrolü
@@ -432,6 +733,15 @@ const TableManagementScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {/* Web için geri düğmesi */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>← Geri</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Masa Yönetimi</Text>
         <Text style={styles.headerSubtitle}>Masa durumları ve yerleşim yönetimi</Text>
       </View>
@@ -500,23 +810,12 @@ const TableManagementScreen = ({ navigation }) => {
                       <Text style={styles.tableCapacity}>{table.capacity} kişilik</Text>
                     </View>
                     <View style={styles.tableStatus}>
-                      <Text style={styles.statusIcon}>{getStatusIcon(status)}</Text>
                       <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
                         <Text style={styles.statusText}>{getStatusText(status)}</Text>
                       </View>
                     </View>
                   </View>
 
-                  {/* QR Barkod */}
-                  <View style={styles.qrSection}>
-                    <QRBarcode
-                      qrCode={table.qr_code || 'https://restoran.com/masa/default'}
-                      tableNumber={table.table_number || '0'}
-                      businessCode="REST001"
-                      size={120}
-                      showInfo={false}
-                    />
-                  </View>
 
 
                   {status === 'occupied' && (
@@ -524,15 +823,10 @@ const TableManagementScreen = ({ navigation }) => {
                       <Text style={styles.occupancyText}>
                         {currentGuests} kişi • {sessionDuration}
                       </Text>
-                      {table.needs_cleaning && (
-                        <Text style={styles.cleaningRequiredText}>
-                          🧹 Temizlik Gerekli
-                        </Text>
-                      )}
                     </View>
                   )}
 
-                  {status === 'payment_waiting' && (
+                  {table.payment_status === 'payment_waiting' && (
                     <View style={styles.paymentInfo}>
                       <Text style={styles.paymentText}>
                         ⏳ Müşteri kasiyeri çağırdı
@@ -540,28 +834,38 @@ const TableManagementScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  {status === 'payment_completed' && (
+                  {table.payment_status === 'payment_completed' && (
                     <View style={styles.paymentInfo}>
                       <Text style={styles.paymentText}>
-                        💰 Ödeme alındı - Temizlik bekliyor
+                        💰 Ödeme alındı
                       </Text>
                     </View>
                   )}
 
                   <View style={styles.tableActions}>
                     <Button
+                      title="QR Kod Görüntüle"
+                      variant="primary"
+                      size="small"
+                      onPress={() => handleDownloadQR(table)}
+                      style={[styles.actionButton, styles.softBlueButton]}
+                      textStyle={styles.softBlueButtonText}
+                    />
+                    <Button
                       title="Düzenle"
                       variant="outline"
                       size="small"
                       onPress={() => handleEditTable(table)}
-                      style={styles.actionButton}
+                      style={[styles.actionButton, styles.softBlueButton]}
+                      textStyle={styles.softBlueButtonText}
                     />
                     <Button
                       title="Sil"
                       variant="danger"
                       size="small"
                       onPress={() => handleRemoveTable(table.id)}
-                      style={styles.actionButton}
+                      style={[styles.actionButton, styles.softBlueButton]}
+                      textStyle={styles.softBlueButtonText}
                     />
                   </View>
                 </Card>
@@ -630,6 +934,121 @@ const TableManagementScreen = ({ navigation }) => {
         onSave={handleSaveTable}
         businessCode="REST001"
       />
+
+      {/* QR Kod İndirme Onay Modalı */}
+      <Modal
+        visible={showQRDownloadModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowQRDownloadModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {Platform.OS === 'web' ? 'QR Kod İndir' : 'QR Kod Görüntüle'}
+            </Text>
+            
+            {Platform.OS === 'web' ? (
+              <>
+                <Text style={styles.modalMessage}>
+                  Masa {qrDownloadTable?.table_number} için QR kod PDF'ini indirmek istediğinizden emin misiniz?
+                </Text>
+                
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowQRDownloadModal(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>İptal</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={() => {
+                      downloadQRPDF(qrDownloadTable);
+                      setShowQRDownloadModal(false);
+                    }}
+                  >
+                    <Text style={styles.confirmButtonText}>İndir</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalMessage}>
+                  Masa {qrDownloadTable?.table_number} QR Kodu
+                </Text>
+                
+                {/* Mobil'de QR kod görüntüleme */}
+                <View style={styles.qrDisplayContainer}>
+                  <QRBarcode
+                    qrCode={qrDownloadTable?.qr_code || `https://customer-web.com/masa/REST001/${qrDownloadTable?.table_number}`}
+                    tableNumber={qrDownloadTable?.table_number || '0'}
+                    businessCode="REST001"
+                    size={200}
+                    showInfo={true}
+                  />
+                </View>
+                
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowQRDownloadModal(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Kapat</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={() => {
+                      downloadQRForMobile(qrDownloadTable);
+                      setShowQRDownloadModal(false);
+                    }}
+                  >
+                    <Text style={styles.confirmButtonText}>İndir</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Masa Silme Onay Modalı */}
+      <Modal
+        visible={showDeleteModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Masa Sil</Text>
+            <Text style={styles.modalMessage}>
+              Bu masayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>İptal</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.dangerButton]}
+                onPress={() => {
+                  deleteTable(deleteTableId);
+                  setShowDeleteModal(false);
+                }}
+              >
+                <Text style={styles.dangerButtonText}>Sil</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -660,42 +1079,72 @@ const TableEditModal = ({
 
   const handleSave = () => {
     if (!formData.tableNumber.trim()) {
-      Alert.alert('Hata', 'Lütfen masa numarası giriniz.');
+      if (Platform.OS === 'web') {
+        window.alert('Hata: Lütfen masa numarası giriniz.');
+      } else {
+        Alert.alert('Hata', 'Lütfen masa numarası giriniz.');
+      }
       return;
     }
 
-    if (formData.capacity < 1 || formData.capacity > 20) {
-      Alert.alert('Hata', 'Kapasite 1-20 arasında olmalıdır.');
+    if (!formData.capacity || formData.capacity < 1 || formData.capacity > 20) {
+      if (Platform.OS === 'web') {
+        window.alert('Hata: Kapasite 1-20 arasında olmalıdır.');
+      } else {
+        Alert.alert('Hata', 'Kapasite 1-20 arasında olmalıdır.');
+      }
       return;
     }
 
-    onSave({
-      ...table,
-      table_number: formData.tableNumber.trim(),
-      capacity: parseInt(formData.capacity),
-      qr_code: formData.qrCode,
-    });
+    // Web'de onay mesajı göster
+    if (Platform.OS === 'web') {
+      if (window.confirm('Masa bilgilerini güncellemek istediğinizden emin misiniz?')) {
+        onSave({
+          ...table,
+          table_number: formData.tableNumber.trim(),
+          capacity: parseInt(formData.capacity),
+          qr_code: formData.qrCode,
+        });
+      }
+    } else {
+      onSave({
+        ...table,
+        table_number: formData.tableNumber.trim(),
+        capacity: parseInt(formData.capacity),
+        qr_code: formData.qrCode,
+      });
+    }
   };
 
   const handleGenerateNewQR = () => {
     const newQRCode = generateQRCode(businessCode, formData.tableNumber.trim());
     setFormData(prev => ({ ...prev, qrCode: newQRCode }));
-    Alert.alert('Başarılı', 'Yeni QR kod oluşturuldu.');
+    if (Platform.OS === 'web') {
+      window.alert('Başarılı: Yeni QR kod oluşturuldu.');
+    } else {
+      Alert.alert('Başarılı', 'Yeni QR kod oluşturuldu.');
+    }
   };
 
   const handleResetQR = () => {
-    Alert.alert(
-      'QR Kod Sıfırla',
-      'Mevcut QR kod sıfırlanacak ve yeni bir tane oluşturulacak. Bu işlem geri alınamaz.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sıfırla',
-          style: 'destructive',
-          onPress: handleGenerateNewQR
-        }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      if (window.confirm('Mevcut QR kod sıfırlanacak ve yeni bir tane oluşturulacak. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?')) {
+        handleGenerateNewQR();
+      }
+    } else {
+      Alert.alert(
+        'QR Kod Sıfırla',
+        'Mevcut QR kod sıfırlanacak ve yeni bir tane oluşturulacak. Bu işlem geri alınamaz.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Sıfırla',
+            style: 'destructive',
+            onPress: handleGenerateNewQR
+          }
+        ]
+      );
+    }
   };
 
   return (
@@ -729,7 +1178,14 @@ const TableEditModal = ({
                 <TextInput
                   style={editModalStyles.input}
                   value={formData.capacity.toString()}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, capacity: parseInt(text) || 4 }))}
+                  onChangeText={(text) => {
+                    const num = parseInt(text);
+                    if (text === '' || isNaN(num)) {
+                      setFormData(prev => ({ ...prev, capacity: '' }));
+                    } else {
+                      setFormData(prev => ({ ...prev, capacity: num }));
+                    }
+                  }}
                   placeholder="Kişi sayısı"
                   keyboardType="numeric"
                 />
@@ -750,6 +1206,7 @@ const TableEditModal = ({
 
               <View style={editModalStyles.qrContainer}>
                 <QRBarcode
+                  key={formData.qrCode} // QR kodu değiştiğinde component yeniden render edilir
                   qrCode={formData.qrCode || 'https://restoran.com/masa/default'}
                   tableNumber={formData.tableNumber || '0'}
                   businessCode={businessCode}
@@ -848,6 +1305,7 @@ const styles = StyleSheet.create({
     padding: Spacing.screenPadding,
     backgroundColor: Colors.surface,
     marginTop: Spacing.sm,
+    marginBottom: 16,
   },
   sectionTitle: {
     ...Typography.styles.h4,
@@ -920,77 +1378,68 @@ const styles = StyleSheet.create({
   },
   tableCard: {
     backgroundColor: Colors.white,
-    borderRadius: Spacing.radius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    elevation: 3,
+    borderColor: '#F3F4F6',
+    elevation: 1,
   },
   tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
+    marginBottom: 6,
   },
   tableInfo: {
     flex: 1,
   },
   tableNumber: {
-    ...Typography.styles.h4,
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   tableCapacity: {
-    ...Typography.styles.bodySmall,
+    fontSize: 12,
     color: Colors.textSecondary,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.radius.sm,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
     alignSelf: 'flex-start',
   },
   tableStatus: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  statusIcon: {
-    fontSize: 20,
-    marginRight: Spacing.sm,
-  },
   statusBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.radius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   statusText: {
-    ...Typography.styles.caption,
+    fontSize: 11,
     color: Colors.white,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   occupancyInfo: {
-    backgroundColor: Colors.warningLight,
-    padding: Spacing.sm,
-    borderRadius: Spacing.radius.sm,
-    marginBottom: Spacing.md,
+    backgroundColor: '#FEF3C7',
+    padding: 6,
+    borderRadius: 4,
+    marginBottom: 6,
   },
   occupancyText: {
-    ...Typography.styles.bodySmall,
-    color: Colors.warning,
+    fontSize: 11,
+    color: '#D97706',
     textAlign: 'center',
-  },
-  cleaningRequiredText: {
-    ...Typography.styles.bodySmall,
-    color: Colors.error,
-    textAlign: 'center',
-    fontWeight: Typography.fontWeight.bold,
-    marginTop: Spacing.xs,
+    fontWeight: '500',
   },
   tableActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: 6,
+    marginTop: 8,
   },
   actionButton: {
     backgroundColor: Colors.info,
@@ -998,6 +1447,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.sm,
     marginBottom: Spacing.sm,
+  },
+  softBlueButton: {
+    backgroundColor: '#ddbac6', // Soft blue
+    borderColor: '#ddbac6',
+  },
+  softBlueButtonText: {
+    color: '#FFFFFF', // Beyaz yazı
   },
   actionButtonText: {
     color: Colors.white,
@@ -1101,14 +1557,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   paymentInfo: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: Colors.warning + '20',
-    borderRadius: 6,
+    marginTop: 4,
+    padding: 6,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 4,
   },
   paymentText: {
-    fontSize: 12,
-    color: Colors.warning,
+    fontSize: 11,
+    color: '#D97706',
     fontWeight: '500',
   },
   qrSection: {
@@ -1117,6 +1573,20 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: Colors.gray50,
     borderRadius: 8,
+  },
+  // Web için geri düğmesi stilleri
+  backButton: {
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 
@@ -1223,6 +1693,108 @@ const editModalStyles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: Colors.primary,
+  },
+  // Web için geri düğmesi stilleri
+  backButton: {
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  // QR Download Modal stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...Typography.styles.h3,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalMessage: {
+    ...Typography.styles.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    ...Platform.select({
+      web: {
+        minWidth: 120,
+        maxWidth: 150,
+      },
+    }),
+  },
+  cancelButton: {
+    backgroundColor: Colors.gray200,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+  },
+  confirmButton: {
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  dangerButton: {
+    backgroundColor: Colors.error,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  cancelButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
+    fontSize: 16,
+  },
+  confirmButtonText: {
+    ...Typography.styles.body,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.medium,
+    fontSize: 16,
+  },
+  dangerButtonText: {
+    ...Typography.styles.body,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.medium,
+    fontSize: 16,
+  },
+  // QR Display Container
+  qrDisplayContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    padding: 20,
+    backgroundColor: Colors.gray50,
+    borderRadius: 12,
   },
 });
 

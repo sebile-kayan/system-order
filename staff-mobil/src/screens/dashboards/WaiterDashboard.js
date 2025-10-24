@@ -460,7 +460,7 @@ const WaiterDashboard = () => {
                         {table.tableNumber}
                       </Text>
                       <Text style={styles.infoStatus}>
-                        Müşteri Masada- Müdahale Edilemez
+                        Müşteri masada- Müdahale edilemez
                       </Text>
                     </View>
                     <View style={styles.infoDetails}>
@@ -560,7 +560,7 @@ const WaiterDashboard = () => {
                       onPress={() => handleTableAction(table)}
                     >
                       <Text style={styles.urgentButtonText}>
-                        TEMİZLİK BİTTİ - MASA BOŞ İŞARETLE
+                        Temizlik bitti - Masa boş işaretle
                       </Text>
                     </TouchableOpacity>
                   </View>

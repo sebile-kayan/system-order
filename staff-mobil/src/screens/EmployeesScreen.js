@@ -225,20 +225,30 @@ const EmployeesScreen = ({ navigation }) => {
   };
 
   const handleDeleteEmployee = (employee) => {
-    Alert.alert(
-      'Çalışanı Sil',
-      `${employee.name} adlı çalışanı silmek istediğinizden emin misiniz?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: () => {
-            setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+    if (Platform.OS === 'web') {
+      // Web'de window.confirm kullan
+      if (window.confirm(`${employee.name} adlı çalışanı silmek istediğinizden emin misiniz?`)) {
+        setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+        window.alert('Başarılı: Çalışan silindi.');
+      }
+    } else {
+      // Expo'da Alert kullan
+      Alert.alert(
+        'Çalışanı Sil',
+        `${employee.name} adlı çalışanı silmek istediğinizden emin misiniz?`,
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Sil',
+            style: 'destructive',
+            onPress: () => {
+              setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+              Alert.alert('Başarılı', 'Çalışan silindi.');
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleSaveEmployee = () => {
@@ -255,7 +265,13 @@ const EmployeesScreen = ({ navigation }) => {
       const exitDate = new Date(formData.exitDate.split('-').reverse().join('-'));
       
       if (joinDate > exitDate) {
-        Alert.alert('Hata', 'İşe başlama tarihi, işten çıkış tarihinden sonra olamaz');
+        if (Platform.OS === 'web') {
+          // Web'de window.alert kullan
+          window.alert('Hata: İşe başlama tarihi, işten çıkış tarihinden sonra olamaz');
+        } else {
+          // Expo'da Alert kullan
+          Alert.alert('Hata', 'İşe başlama tarihi, işten çıkış tarihinden sonra olamaz');
+        }
         return;
       }
     }
@@ -273,6 +289,13 @@ const EmployeesScreen = ({ navigation }) => {
         )
       );
       editModal.closeModal();
+      
+      // Başarılı mesajı
+      if (Platform.OS === 'web') {
+        window.alert('Başarılı: Çalışan güncellendi.');
+      } else {
+        Alert.alert('Başarılı', 'Çalışan güncellendi.');
+      }
     } else {
       // Yeni ekleme
       const newEmployee = {
@@ -282,6 +305,13 @@ const EmployeesScreen = ({ navigation }) => {
       };
       setEmployees(prev => [...prev, newEmployee]);
       addModal.closeModal();
+      
+      // Başarılı mesajı
+      if (Platform.OS === 'web') {
+        window.alert('Başarılı: Çalışan eklendi.');
+      } else {
+        Alert.alert('Başarılı', 'Çalışan eklendi.');
+      }
     }
     
     setEditingEmployee(null);
@@ -328,6 +358,15 @@ const EmployeesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {/* Web için geri düğmesi */}
+        {Platform.OS === 'web' && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>← Geri</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Çalışanlar</Text>
         <Text style={styles.headerSubtitle}>Personel yönetimi ve bilgileri</Text>
       </View>
@@ -1050,6 +1089,20 @@ const styles = StyleSheet.create({
     ...Typography.styles.caption,
     color: Colors.error,
     marginTop: Spacing.xs,
+  },
+  // Web için geri düğmesi stilleri
+  backButton: {
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

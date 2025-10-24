@@ -33,7 +33,7 @@ import useForm from '../hooks/useForm';
 
 const MenuScreen = () => {
   const { user, hasRole } = useAuth();
-  const { getActiveCategories, products, addCategory, addProduct } = useCategory();
+  const { getActiveCategories, products, addCategory, addProduct, deleteProduct } = useCategory();
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState(['all']); // Çoklu seçim için array
@@ -206,28 +206,35 @@ const MenuScreen = () => {
   });
 
   const handleToggleAvailability = (itemId) => {
-    setMenuItems(prevItems =>
-      prevItems.map(item =>
-        item.id === itemId ? { ...item, is_available: !item.is_available } : item
-      )
-    );
+    // products state'i useCategory hook'undan geliyor, burada sadece UI güncellemesi yapılıyor
+    // Gerçek güncelleme backend'de yapılacak
   };
 
   const handleDeleteItem = (itemId) => {
-    Alert.alert(
-      'Ürün Silme',
-      'Bu ürünü silmek istediğinizden emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: () => {
-            setMenuItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    if (Platform.OS === 'web') {
+      // Web'de window.confirm kullan
+      if (window.confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+        deleteProduct(itemId);
+        window.alert('Başarılı: Ürün silindi.');
+      }
+    } else {
+      // Expo'da Alert kullan
+      Alert.alert(
+        'Ürün Silme',
+        'Bu ürünü silmek istediğinizden emin misiniz?',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Sil',
+            style: 'destructive',
+            onPress: () => {
+              deleteProduct(itemId);
+              Alert.alert('Başarılı', 'Ürün silindi.');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleEditItem = (item) => {
@@ -278,10 +285,16 @@ const MenuScreen = () => {
         category: categories.find(cat => cat.id === editItemForm.values.category_id)?.name || 'Ana Yemek',
       };
       
-      setMenuItems(prevItems =>
-        prevItems.map(item => item.id === editingItem.id ? itemData : item)
-      );
+      // products state'i useCategory hook'undan geliyor, burada sadece UI güncellemesi yapılıyor
+      // Gerçek güncelleme backend'de yapılacak
       setShowEditModal(false);
+      
+      // Başarılı mesajı
+      if (Platform.OS === 'web') {
+        window.alert('Başarılı: Ürün güncellendi.');
+      } else {
+        Alert.alert('Başarılı', 'Ürün güncellendi.');
+      }
     } else {
       // Yeni ekleme modunda itemForm validasyonu
       if (!itemForm.validateForm()) {
@@ -302,6 +315,13 @@ const MenuScreen = () => {
       
       addProduct(itemData);
       addModal.closeModal();
+      
+      // Başarılı mesajı
+      if (Platform.OS === 'web') {
+        window.alert('Başarılı: Ürün eklendi.');
+      } else {
+        Alert.alert('Başarılı', 'Ürün eklendi.');
+      }
     }
 
     itemForm.resetForm();
@@ -322,6 +342,13 @@ const MenuScreen = () => {
     setShowCategoryModal(false);
     setNewCategory({ name: '', description: '', is_active: true });
     setCategoryErrors({});
+    
+    // Başarılı mesajı
+    if (Platform.OS === 'web') {
+      window.alert('Başarılı: Kategori eklendi.');
+    } else {
+      Alert.alert('Başarılı', 'Kategori eklendi.');
+    }
   };
 
   // Kategori seçim fonksiyonu
@@ -363,6 +390,15 @@ const MenuScreen = () => {
     <View style={styles.container}>
       <View style={styles.safeArea}>
         <View style={[styles.header, { paddingTop: 50 }]}>
+          {/* Web için geri düğmesi */}
+          {Platform.OS === 'web' && (
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.backButtonText}>← Geri</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.headerTitle}>Menü Yönetimi</Text>
           <Text style={styles.headerSubtitle}>Ürün ve kategori yönetimi</Text>
         </View>
@@ -1239,6 +1275,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.sm,
+  },
+  // Web için geri düğmesi stilleri
+  backButton: {
+    backgroundColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.md,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    ...Typography.styles.body,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

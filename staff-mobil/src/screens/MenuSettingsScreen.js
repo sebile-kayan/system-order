@@ -48,6 +48,7 @@ const MenuSettingsScreen = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('categories');
   const [refreshing, setRefreshing] = useState(false);
+  const [orderInputs, setOrderInputs] = useState({});
 
   // Fiyat Yönetimi - Toplu zam ve indirim
   const [bulkIncreasePercent, setBulkIncreasePercent] = useState(5);
@@ -180,10 +181,24 @@ const MenuSettingsScreen = () => {
   // Kategori Yönetimi Fonksiyonları
   const handleToggleCategoryStatus = (categoryId) => {
     toggleCategoryStatus(categoryId);
+    
+    // Başarılı mesajı
+    if (Platform.OS === 'web') {
+      window.alert('Başarılı: Kategori durumu değiştirildi.');
+    } else {
+      Alert.alert('Başarılı', 'Kategori durumu değiştirildi.');
+    }
   };
 
   const handleReorderCategories = (fromIndex, toIndex) => {
     reorderCategories(fromIndex, toIndex);
+    
+    // Başarılı mesajı
+    if (Platform.OS === 'web') {
+      window.alert('Başarılı: Kategori sıralaması güncellendi.');
+    } else {
+      Alert.alert('Başarılı', 'Kategori sıralaması güncellendi.');
+    }
   };
 
   const handleMergeCategories = () => {
@@ -226,18 +241,10 @@ const MenuSettingsScreen = () => {
         type: 'default',
         onConfirm: () => {
           mergeCategories(selectedCategories, mergedCategoryName);
-          showConfirmation({
-            title: 'Başarılı',
-            message: 'Kategoriler başarıyla birleştirildi.',
-            confirmText: 'Tamam',
-            type: 'default',
-            onConfirm: () => {
-              setShowMergeModal(false);
-              setSelectedCategories([]);
-              setMergedCategoryName('');
-              hideConfirmation();
-            },
-          });
+          window.alert('Başarılı: Kategoriler başarıyla birleştirildi.');
+          setShowMergeModal(false);
+          setSelectedCategories([]);
+          setMergedCategoryName('');
         },
       });
     } else {
@@ -330,19 +337,11 @@ const MenuSettingsScreen = () => {
           type: 'default',
           onConfirm: () => {
             splitCategory(categoryToSplit.id, validCategories, []);
-            showConfirmation({
-              title: 'Başarılı',
-              message: 'Kategori başarıyla bölündü.',
-              confirmText: 'Tamam',
-              type: 'default',
-              onConfirm: () => {
-                setShowSplitModal(false);
-                setCategoryToSplit(null);
-                setSplitCategories(['', '']);
-                setProductAssignments({});
-                hideConfirmation();
-              },
-            });
+            window.alert('Başarılı: Kategori başarıyla bölündü.');
+            setShowSplitModal(false);
+            setCategoryToSplit(null);
+            setSplitCategories(['', '']);
+            setProductAssignments({});
           },
         });
       } else {
@@ -414,19 +413,11 @@ const MenuSettingsScreen = () => {
         type: 'default',
         onConfirm: () => {
           splitCategory(categoryToSplit.id, validCategories, assignments, deletedProductIds);
-          showConfirmation({
-            title: 'Başarılı',
-            message: 'Kategori başarıyla bölündü.',
-            confirmText: 'Tamam',
-            type: 'default',
-            onConfirm: () => {
-              setShowSplitModal(false);
-              setCategoryToSplit(null);
-              setSplitCategories(['', '']);
-              setProductAssignments({});
-              hideConfirmation();
-            },
-          });
+          window.alert('Başarılı: Kategori başarıyla bölündü.');
+          setShowSplitModal(false);
+          setCategoryToSplit(null);
+          setSplitCategories(['', '']);
+          setProductAssignments({});
         },
       });
     } else {
@@ -490,17 +481,9 @@ const MenuSettingsScreen = () => {
             deleteCategory(categoryId);
           });
           
-          showConfirmation({
-            title: 'Başarılı',
-            message: `${categoriesToDelete.length} kategori başarıyla silindi.`,
-            confirmText: 'Tamam',
-            type: 'default',
-            onConfirm: () => {
-              setShowDeleteModal(false);
-              setCategoriesToDelete([]);
-              hideConfirmation();
-            },
-          });
+          window.alert(`Başarılı: ${categoriesToDelete.length} kategori başarıyla silindi.`);
+          setShowDeleteModal(false);
+          setCategoriesToDelete([]);
         },
       });
     } else {
@@ -544,13 +527,7 @@ const MenuSettingsScreen = () => {
     setCategoryErrors({});
     
     if (Platform.OS === 'web') {
-      showConfirmation({
-        title: 'Başarılı',
-        message: 'Kategori başarıyla eklendi.',
-        confirmText: 'Tamam',
-        type: 'default',
-        onConfirm: () => hideConfirmation(),
-      });
+      window.alert('Başarılı: Kategori başarıyla eklendi.');
     } else {
       Alert.alert('Başarılı', 'Kategori başarıyla eklendi.');
     }
@@ -656,14 +633,107 @@ const MenuSettingsScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.subsectionTitle}>Kategori Sıralaması</Text>
         </View>
-        {categories.map((category, index) => (
+        {categories
+          .sort((a, b) => {
+            // Aktif kategoriler üstte, pasif kategoriler altta
+            if (a.is_active && !b.is_active) return -1;
+            if (!a.is_active && b.is_active) return 1;
+            // Aynı durumda ise display_order'a göre sırala
+            return (a.display_order || 0) - (b.display_order || 0);
+          })
+          .map((category, index) => (
           <View key={category.id} style={styles.categoryItem}>
             <View style={styles.categoryInfo}>
               <View style={[styles.categoryColor, { backgroundColor: category.color }]} />
               <Text style={styles.categoryName}>{category.name}</Text>
-              <Text style={styles.categoryOrder}>#{category.display_order}</Text>
             </View>
             <View style={styles.categoryActions}>
+              {/* Sıra Numarası Girişi - Sadece Aktif Kategoriler İçin */}
+              {category.is_active && (
+                <View style={styles.orderInputContainer}>
+                  <Text style={styles.orderInputLabel}>Sıra:</Text>
+                  <TextInput
+                    style={styles.orderInput}
+                    value={orderInputs[category.id] !== undefined ? orderInputs[category.id] : category.display_order.toString()}
+                    onChangeText={(text) => {
+                      // Sadece rakam girişine izin ver
+                      const numericText = text.replace(/[^0-9]/g, '');
+                      if (numericText !== text) {
+                        if (Platform.OS === 'web') {
+                          window.alert('Sadece rakam girebilirsiniz!');
+                        } else {
+                          Alert.alert('Hata', 'Sadece rakam girebilirsiniz!');
+                        }
+                        return;
+                      }
+                      // State'i güncelle (boş string'e de izin ver)
+                      setOrderInputs(prev => ({
+                        ...prev,
+                        [category.id]: numericText
+                      }));
+                    }}
+                    onBlur={() => {
+                      // Input'tan odak çıkınca boşsa varsayılan değere dön
+                      const inputValue = orderInputs[category.id];
+                      if (!inputValue || inputValue.trim() === '') {
+                        setOrderInputs(prev => {
+                          const newState = { ...prev };
+                          delete newState[category.id];
+                          return newState;
+                        });
+                      }
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    placeholder="Sıra"
+                  />
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => {
+                      const inputValue = orderInputs[category.id];
+                      
+                      // Boş string kontrolü
+                      if (!inputValue || inputValue.trim() === '') {
+                        if (Platform.OS === 'web') {
+                          window.alert('Lütfen bir sıra numarası girin!');
+                        } else {
+                          Alert.alert('Hata', 'Lütfen bir sıra numarası girin!');
+                        }
+                        return;
+                      }
+                      
+                      const activeCategories = categories.filter(cat => cat.is_active);
+                      const newOrder = parseInt(inputValue) || 1;
+                      if (newOrder >= 1 && newOrder <= activeCategories.length) {
+                        handleReorderCategories(index, newOrder - 1);
+                        // State'i temizle
+                        setOrderInputs(prev => {
+                          const newState = { ...prev };
+                          delete newState[category.id];
+                          return newState;
+                        });
+                      } else {
+                        if (Platform.OS === 'web') {
+                          window.alert(`Sıra numarası 1-${activeCategories.length} arasında olmalıdır!`);
+                        } else {
+                          Alert.alert('Hata', `Sıra numarası 1-${activeCategories.length} arasında olmalıdır!`);
+                        }
+                      }
+                    }}
+                  >
+                    <Text style={styles.confirmButtonText}>✓</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {/* Pasif Kategoriler İçin Durum Göster */}
+              {!category.is_active && (
+                <View style={styles.orderDisplayContainer}>
+                  <Text style={styles.orderDisplayLabel}>Durum:</Text>
+                  <Text style={styles.orderDisplayValue}>Pasif</Text>
+                </View>
+              )}
+              
               <TouchableOpacity
                 style={[
                   styles.statusButton,
@@ -780,12 +850,15 @@ const MenuSettingsScreen = () => {
     <View style={styles.container}>
       <View style={styles.safeArea}>
         <View style={[styles.header, { paddingTop: 50 }]}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>← Geri</Text>
-          </TouchableOpacity>
+          {/* Web için geri düğmesi */}
+          {Platform.OS === 'web' && (
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.backButtonText}>← Geri</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.headerTitle}>Menü Ayarları</Text>
           <Text style={styles.headerSubtitle}>Menü yönetimi ayarları</Text>
         </View>
@@ -2029,6 +2102,84 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#e5e7eb',
     marginVertical: 20,
+  },
+  // Sıra Numarası Girişi
+  orderInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  orderInputLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginRight: 4,
+  },
+  orderInput: {
+    width: 40,
+    height: 36,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  confirmButton: {
+    width: 28,
+    height: 28,
+    backgroundColor: '#10b981',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  confirmButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  // Pasif Kategoriler İçin Sıra Numarası Gösterimi
+  orderDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  orderDisplayLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9ca3af',
+    marginRight: 4,
+  },
+  orderDisplayValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    minWidth: 24,
+    textAlign: 'center',
   },
 });
 

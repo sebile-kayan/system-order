@@ -162,6 +162,11 @@ export const CategoryProvider = ({ children }) => {
     return newProduct;
   }, []);
 
+  // Ürün silme
+  const deleteProduct = useCallback((productId) => {
+    setProducts(prev => prev.filter(product => product.id !== productId));
+  }, []);
+
   // Kategori silme
   const deleteCategory = useCallback((categoryId) => {
     setCategories(prev => prev.filter(cat => cat.id !== categoryId));
@@ -180,27 +185,86 @@ export const CategoryProvider = ({ children }) => {
 
   // Kategori durumu değiştirme
   const toggleCategoryStatus = useCallback((categoryId) => {
-    setCategories(prev => 
-      prev.map(cat => 
-        cat.id === categoryId 
-          ? { ...cat, is_active: !cat.is_active }
-          : cat
-      )
-    );
+    setCategories(prev => {
+      const category = prev.find(cat => cat.id === categoryId);
+      if (!category) return prev;
+      
+      const isBecomingInactive = category.is_active;
+      
+      if (isBecomingInactive) {
+        // Aktif → Pasif: Sıra numarasını kaldır, diğer aktif kategorileri yeniden sırala
+        const activeCategories = prev.filter(cat => cat.is_active && cat.id !== categoryId);
+        const inactiveCategories = prev.filter(cat => !cat.is_active);
+        
+        // Aktif kategorileri yeniden sırala
+        const updatedActiveCategories = activeCategories.map((cat, index) => ({
+          ...cat,
+          display_order: index + 1
+        }));
+        
+        // Pasif yapılan kategoriyi sıra numarası olmadan ekle
+        const updatedInactiveCategories = [
+          ...inactiveCategories,
+          { ...category, is_active: false, display_order: null }
+        ];
+        
+        // Aktifler üstte, pasifler altta
+        return [...updatedActiveCategories, ...updatedInactiveCategories];
+      } else {
+        // Pasif → Aktif: En sona ekle
+        const activeCategories = prev.filter(cat => cat.is_active);
+        const inactiveCategories = prev.filter(cat => !cat.is_active && cat.id !== categoryId);
+        
+        // Aktif kategorileri yeniden sırala
+        const updatedActiveCategories = activeCategories.map((cat, index) => ({
+          ...cat,
+          display_order: index + 1
+        }));
+        
+        // Pasif kategorileri koru (sıra numarası null)
+        const updatedInactiveCategories = inactiveCategories.map(cat => ({
+          ...cat,
+          display_order: cat.display_order
+        }));
+        
+        // Aktif yapılan kategoriyi en sona ekle
+        const newActiveCategory = {
+          ...category,
+          is_active: true,
+          display_order: activeCategories.length + 1
+        };
+        
+        // Aktifler üstte, pasifler altta
+        return [...updatedActiveCategories, ...updatedInactiveCategories, newActiveCategory];
+      }
+    });
   }, []);
 
-  // Kategori sıralama
+  // Kategori sıralama (sadece aktif kategoriler)
   const reorderCategories = useCallback((fromIndex, toIndex) => {
     setCategories(prev => {
-      const newCategories = [...prev];
-      const [movedCategory] = newCategories.splice(fromIndex, 1);
-      newCategories.splice(toIndex, 0, movedCategory);
+      // Sadece aktif kategorileri al
+      const activeCategories = prev.filter(cat => cat.is_active);
+      const inactiveCategories = prev.filter(cat => !cat.is_active);
       
-      // Display order'ları güncelle
-      return newCategories.map((cat, index) => ({
+      // Aktif kategoriler arasında sıralama yap
+      const [movedCategory] = activeCategories.splice(fromIndex, 1);
+      activeCategories.splice(toIndex, 0, movedCategory);
+      
+      // Aktif kategorilerin display_order'larını güncelle
+      const updatedActiveCategories = activeCategories.map((cat, index) => ({
         ...cat,
         display_order: index + 1
       }));
+      
+      // Pasif kategorilerin display_order'larını koru
+      const updatedInactiveCategories = inactiveCategories.map(cat => ({
+        ...cat,
+        display_order: cat.display_order // Mevcut sıra numarasını koru
+      }));
+      
+      // Tüm kategorileri birleştir
+      return [...updatedActiveCategories, ...updatedInactiveCategories];
     });
   }, []);
 
@@ -314,6 +378,7 @@ export const CategoryProvider = ({ children }) => {
     products,
     addCategory,
     addProduct,
+    deleteProduct,
     deleteCategory,
     updateCategory,
     toggleCategoryStatus,

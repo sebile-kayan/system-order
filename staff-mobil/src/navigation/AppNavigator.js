@@ -57,17 +57,35 @@ const AppNavigator = () => {
             <Stack.Screen 
               name="TableManagement" 
               component={TableManagementScreen} 
-              options={{ headerShown: false }}
+              options={{ 
+                headerShown: false,
+                cardStyle: { 
+                  backgroundColor: '#f8fafc',
+                  flex: 1,
+                },
+              }}
             />
             <Stack.Screen 
               name="Employees" 
               component={EmployeesScreen} 
-              options={{ headerShown: false }}
+              options={{ 
+                headerShown: false,
+                cardStyle: { 
+                  backgroundColor: '#f8fafc',
+                  flex: 1,
+                },
+              }}
             />
             <Stack.Screen 
               name="Reports" 
               component={ReportsScreen} 
-              options={{ headerShown: false }}
+              options={{ 
+                headerShown: false,
+                cardStyle: { 
+                  backgroundColor: '#f8fafc',
+                  flex: 1,
+                },
+              }}
             />
           </>
         )}
