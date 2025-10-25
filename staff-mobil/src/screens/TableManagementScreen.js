@@ -365,27 +365,36 @@ const TableManagementScreen = ({ navigation }) => {
 
   const handleAddTable = async () => {
     if (!newTable.tableNumber.trim()) {
-      Alert.alert('Hata', 'Lütfen masa numarası giriniz.');
+      if (Platform.OS === 'web') {
+        window.alert('Hata: Lütfen masa numarası giriniz.');
+      } else {
+        Alert.alert('Hata', 'Lütfen masa numarası giriniz.');
+      }
       return;
     }
 
     const tableExists = tables.some(table => table.table_number === newTable.tableNumber.trim());
     if (tableExists) {
-      Alert.alert('Hata', 'Bu masa numarası zaten mevcut.');
+      if (Platform.OS === 'web') {
+        window.alert('Hata: Bu masa numarası zaten mevcut.');
+      } else {
+        Alert.alert('Hata', 'Bu masa numarası zaten mevcut.');
+      }
       return;
     }
 
     // Business code'u al (şimdilik mock, sonra API'den gelecek)
     const businessCode = 'REST001';
     
-    // QR kod oluştur
-    const qrCode = generateQRCode(businessCode, newTable.tableNumber.trim());
+    // QR kod oluştur - benzersiz bir QR kod
+    const tableNumber = newTable.tableNumber.trim();
+    const qrCode = generateQRCode(businessCode, tableNumber);
 
     const newTableData = {
-      id: Math.max(...tables.map(t => t.id)) + 1,
-      table_number: newTable.tableNumber.trim(),
+      id: Math.max(...tables.map(t => t.id), 0) + 1, // Boş tablo için 0 ekle
+      table_number: tableNumber,
       capacity: newTable.capacity,
-      status: 'empty',
+      status: 'empty', // Durum boş olarak başlıyor
       is_occupied: false,
       current_session_id: null,
       qr_code: qrCode,
@@ -393,11 +402,26 @@ const TableManagementScreen = ({ navigation }) => {
     };
 
     setTables(prevTables => [...prevTables, newTableData]);
-    setNewTable({ tableNumber: '', capacity: 4 });
     setShowAddModal(false);
     
-    // QR kod onayı göster
-    await confirmQRCodeGeneration(newTable.tableNumber.trim(), businessCode);
+    // Başarı mesajı göster
+    if (Platform.OS === 'web') {
+      window.alert(`Başarılı: Masa ${tableNumber} oluşturuldu.\n\nQR Kod: ${qrCode}`);
+    } else {
+      Alert.alert(
+        'Başarılı', 
+        `Masa ${tableNumber} oluşturuldu.\n\nQR Kod: ${qrCode}`,
+        [{ text: 'Tamam' }]
+      );
+    }
+    
+    // Formu sıfırla
+    setNewTable({ tableNumber: '', capacity: 4 });
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setNewTable({ tableNumber: '', capacity: 4 }); // Formu sıfırla
   };
 
   const handleRemoveTable = (tableId) => {
@@ -783,7 +807,7 @@ const TableManagementScreen = ({ navigation }) => {
               title="+ Yeni Masa"
               variant="primary"
               size="small"
-              onPress={handleAddTable}
+              onPress={() => setShowAddModal(true)}
               style={styles.addButton}
             />
           </View>
@@ -880,10 +904,15 @@ const TableManagementScreen = ({ navigation }) => {
         visible={showAddModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowAddModal(false)}
+        onRequestClose={handleCloseAddModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView 
+            style={styles.modalContent}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={styles.modalTitle}>Yeni Masa Ekle</Text>
             
             <View style={styles.inputContainer}>
@@ -892,26 +921,52 @@ const TableManagementScreen = ({ navigation }) => {
                 style={styles.textInput}
                 value={newTable.tableNumber}
                 onChangeText={(text) => setNewTable({...newTable, tableNumber: text})}
-                placeholder="Örn: 1, A1, VIP-1"
+                placeholder="Örn: 9"
                 keyboardType="default"
               />
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Kapasite</Text>
+              <Text style={styles.inputLabel}>Kapasite (Max: 30)</Text>
               <TextInput
                 style={styles.textInput}
                 value={newTable.capacity.toString()}
-                onChangeText={(text) => setNewTable({...newTable, capacity: parseInt(text) || 4})}
+                onChangeText={(text) => {
+                  const num = parseInt(text);
+                  if (text === '' || isNaN(num) || num < 1) {
+                    setNewTable({...newTable, capacity: ''});
+                  } else {
+                    setNewTable({...newTable, capacity: Math.min(num, 30)}); // Max 20 kişi
+                  }
+                }}
                 placeholder="4"
                 keyboardType="numeric"
               />
             </View>
 
+            {/* QR Kod Önizleme */}
+            {newTable.tableNumber.trim() && (
+              <View style={styles.qrPreviewSection}>
+                <Text style={styles.inputLabel}>QR Kod Önizleme</Text>
+                <View style={styles.qrPreviewContainer}>
+                  <QRBarcode
+                    qrCode={generateQRCode('REST001', newTable.tableNumber.trim())}
+                    tableNumber={newTable.tableNumber.trim()}
+                    businessCode="REST001"
+                    size={100}
+                    showInfo={true}
+                  />
+                  <Text style={styles.qrPreviewText}>
+                    {generateQRCode('REST001', newTable.tableNumber.trim())}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowAddModal(false)}
+                onPress={handleCloseAddModal}
               >
                 <Text style={styles.cancelButtonText}>İptal</Text>
               </TouchableOpacity>
@@ -922,7 +977,7 @@ const TableManagementScreen = ({ navigation }) => {
                 <Text style={styles.saveButtonText}>Kaydet</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1482,65 +1537,71 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: Colors.white,
     borderRadius: Spacing.radius.lg,
-    padding: Spacing.xl,
-    width: '90%',
-    maxWidth: 400,
+    padding: Spacing.md,
+    width: '85%',
+    maxWidth: 360,
+    maxHeight: '70%',
   },
   modalTitle: {
     ...Typography.styles.h3,
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
+    fontSize: 18,
   },
   inputContainer: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   inputLabel: {
     ...Typography.styles.body,
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     fontWeight: Typography.fontWeight.semibold,
+    fontSize: 14,
   },
   textInput: {
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Spacing.radius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     ...Typography.styles.body,
     color: Colors.textPrimary,
+    fontSize: 14,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
   },
   cancelButton: {
     backgroundColor: Colors.gray500,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.md,
     flex: 1,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   cancelButtonText: {
     color: Colors.white,
     ...Typography.styles.body,
     fontWeight: Typography.fontWeight.semibold,
     textAlign: 'center',
+    fontSize: 14,
   },
   saveButton: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.md,
     flex: 1,
-    marginLeft: Spacing.sm,
+    marginLeft: Spacing.xs,
   },
   saveButtonText: {
     color: Colors.white,
     ...Typography.styles.body,
     fontWeight: Typography.fontWeight.semibold,
     textAlign: 'center',
+    fontSize: 14,
   },
   // Masa durumu butonları
   statusButton: {
@@ -1573,6 +1634,39 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: Colors.gray50,
     borderRadius: 8,
+  },
+  // QR Kod Önizleme Stilleri
+  modalScrollContent: {
+    paddingBottom: 10,
+    flexGrow: 0,
+  },
+  qrPreviewSection: {
+    marginTop: 0,
+    marginBottom: Spacing.xs,
+    padding: Spacing.sm,
+    backgroundColor: Colors.gray50,
+    borderRadius: Spacing.radius.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+  },
+  qrPreviewContainer: {
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  qrPreviewText: {
+    ...Typography.styles.caption,
+    color: Colors.textSecondary,
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    backgroundColor: Colors.white,
+    padding: Spacing.xs,
+    borderRadius: Spacing.radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    fontSize: 10,
   },
   // Web için geri düğmesi stilleri
   backButton: {
